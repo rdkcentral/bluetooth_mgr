@@ -1,0 +1,105 @@
+name: L2 Unit Test
+on:
+  push:
+    branches: [ main, develop]
+  merge_group:
+  pull_request:
+    branches: [ main, develop ]
+    
+jobs:
+  L2Tests:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: download btcore 
+      run: |
+        git clone https://${{ secrets.RDKCM_RDKE }}@github.com/rdkcentral/bluetooth.git btrcore/
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install libbluetooth-dev libtool m4 automake autoconf libdbus-1-dev libudev-dev libcjson-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-tools libcurl4-openssl-dev libglib2.0-dev gobject-introspection libgirepository1.0-dev bluez libcairo2-dev pkg-config
+
+    - name: download bluez 
+      run: |
+        git clone https://github.com/bluez/bluez.git
+        git -C bluez checkout tags/5.48   
+        mkdir -p ${{ github.workspace }}/local/include/bluetooth/audio
+        mv bluez/profiles/audio/a2dp-codecs.h ${{ github.workspace }}/local/include/bluetooth/audio/a2dp-codecs.h
+        mv bluez/lib/bluetooth.h ${{ github.workspace }}/local/include/bluetooth/audio/bluetooth.h
+
+    - name: compile btcore 
+      run: |
+          cd btrcore/
+          pwd
+          ls
+          libtoolize --force
+          aclocal
+          autoheader
+          automake --force-missing --add-missing
+          autoconf
+          autoreconf --install
+          export CPPFLAGS='-I${{ github.workspace }}/local/include  -Wno-error=unused-result -Wno-error=stringop-truncation -L${{ github.workspace }}/local/lib' 
+          export CFLAGS='-Wno-error'
+          export CXXFLAGS='-Wno-error'
+          ./configure --prefix=${{ github.workspace }}/local/ --enable-btr-ifce=bluez5
+          make V=1
+          make install
+
+    - name : compile btMgr
+      run: |
+           libtoolize --force
+           aclocal
+           automake --force-missing --add-missing
+           autoconf
+           PREFIX_PATH=${{ github.workspace }}/local
+           export PREFIX_PATH
+           export CPPFLAGS="-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I$PREFIX_PATH/include/ -I$PREFIX_PATH/include/cjson/ -I/usr/include/cjson"
+           export LDFLAGS="-L$PREFIX_PATH/lib/ -lbtrCore"
+           export LIBCJSON_LIBS=-lcjson
+           export CFLAGS='-Wno-error'
+           export CXXFLAGS='-Wno-error'
+           ./configure --enable-gstreamer1=yes --enable-pi-build=yes --enable-autoconnectfeature=yes --prefix=$PREFIX_PATH
+           make
+           make install
+           
+    - name: Find binaries
+      run: find ${{ github.workspace }}/local -type f -executable
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+     
+    - name: Install and launch D-Bus
+      run: | 
+        sudo apt-get install -y dbus dbus-x11
+        sudo /etc/init.d/dbus start
+        sleep 2
+
+    - name: Add org.bluez.conf
+      run: |
+        ls /etc/dbus-1/system.d
+
+    - name: Install Python dependencies
+      run: pip3 install dbus-python PyGObject
+
+    - name: run python in background
+      run: |
+        sudo python3 tests/bluezMockV2.py > ./bluezMockLogs.txt &
+
+    - name: run dbus monitor
+      run: |
+        sudo dbus-monitor --system > dbusLogs.txt &
+
+    - name: Run L2 test suite
+      run: |
+        sleep 2
+        sudo ${{ github.workspace }}/local/bin/btrMgrAutoTestSuite
+
+    - name: Output logs on failure
+      if: failure()
+      run: |
+        cat ./bluezMockLogs.txt
+        cat ./dbusLogs.txt

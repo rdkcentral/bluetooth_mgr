@@ -1,0 +1,12 @@
+{
+	"AdapterId":	"C0:E7:BF:07:47:1B",
+	"Profiles":	[{
+			"ProfileId":	"0x110b",
+			"Devices":	[{
+					"DeviceId":	"163411682490179",
+					"ConnectionStatus":	1,
+					"Volume":	"25"
+				}]
+		}]
+}
+

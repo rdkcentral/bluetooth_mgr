@@ -1,0 +1,20 @@
+{
+        "AdapterId":    "F0:46:3B:5B:DA:9C",
+        "Profiles":     [{
+                        "ProfileId":    "0x110b",
+                        "Devices":      [{
+                                        "DeviceId":     "0",
+                                        "ConnectionStatus":     0
+                                }, {
+                                        "DeviceId":     "242606374067342",
+                                        "ConnectionStatus":     1
+                                }, {
+                                        "DeviceId":     "71396527876094",
+                                        "ConnectionStatus":     0
+                                }, {
+                                        "DeviceId":     "848350344915",
+                                        "ConnectionStatus":     0
+                                }]
+                }],
+        "LimitBeaconDetection": "true"
+}

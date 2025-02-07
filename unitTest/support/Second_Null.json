@@ -1,0 +1,25 @@
+{
+        "AdapterId":    "C0:E7:BF:07:47:1B",
+        "Profiles":     [{
+                        "ProfileId":    ,
+                        "Devices":      [{
+                                        "DeviceId":     "0",
+                                        "ConnectionStatus":     0,
+                                        "LastConnected":        0
+                                }, {
+                                        "DeviceId":     "163411682490176",
+                                        "ConnectionStatus":     1,
+                                        "LastConnected":        0
+                                }, {
+                                        "DeviceId":     "277459091713842",
+                                        "ConnectionStatus":     0,
+                                        "LastConnected":        0
+                                }, {
+                                        "DeviceId":     "18765294820236",
+                                        "ConnectionStatus":     1,
+                                        "LastConnected":        1
+                                }]
+                }],
+        "LimitBeaconDetection": "false",
+        "Mute": "false"
+}

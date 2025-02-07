@@ -1,0 +1,28 @@
+{
+        "AdapterId":    "C0:E7:BF:07:47:1B",
+        "Profiles":     [{
+                        "ProfileId":    "0x110b",
+                        "Devices":      [{
+                                        "DeviceId":     "0",
+                                        "ConnectionStatus":     0,
+                                        "LastConnected":        0
+                                }, {
+                                        "DeviceId":     "163411682490176",
+                                        "ConnectionStatus":     1,
+                                        "Volume":       "50",
+                                        "LastConnected":        0
+                                }, {
+                                        "DeviceId":     "277459091713842",
+                                        "ConnectionStatus":     0,
+                                        "Volume":       "51",
+                                        "LastConnected":        0
+                                }, {
+                                        "DeviceId":     "18765294820236",
+                                        "ConnectionStatus":     1,
+                                        "Volume":       "224",
+                                        "LastConnected":        1
+                                }]
+                }],
+        "LimitBeaconDetection": "false",
+        "Mute": "false"
+}
