@@ -14,7 +14,7 @@
 #define WPEFRAMEWORKSECURITYUTILITY "/usr/bin/WPEFrameworkSecurityUtility"
 #define MFRUTIL                         "/usr/bin/mfr_util %s" // --PDRIVersion"
 #define GETINSTALLEDRDMMANIFESTVERSIONSCRIPT  "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"
-#define RDKSSACLI               "/usr/bin/rdkssacli %s" // \"{STOR=GET,SRC=kquhqtoczcbx,DST=/dev/stdout}\"";
+#define RDKSSACLI               "/usr/bin/rdkssacli %s" // \"{STOR=GET,SRC=CREDREFERENCE,DST=STDOUT}\"";
 #define MD5SUM                 "/usr/bin/md5sum %s"
 #define GETMODELSCRIPT    "/lib/rdk/cdlSupport.sh getModel"
 int MemDLAlloc( DownloadData *pDwnData, size_t szDataSize )
