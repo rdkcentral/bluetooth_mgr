@@ -3442,7 +3442,7 @@ static gboolean btrMgr_StartBatteryFirmwareUpgrade(gpointer user_data)
     double FoundVer,CurrentVer;
     gboolean FileFound = FALSE;
 
-    memset(CurrentVersion,'\0',sizeof(CurrentVersion));
+    memset(CurrentVersion,'\0', 10*sizeof(CurrentVersion));
     memset(FoundVersion,'\0',sizeof(FoundVersion));
     memset(val,'\0',sizeof(val));
     memset(FileName,'\0',sizeof(FileName));
