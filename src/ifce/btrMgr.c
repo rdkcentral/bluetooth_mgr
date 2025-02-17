@@ -1971,7 +1971,7 @@ btrMgr_GetDeviceDetails (
         return eBTRMgrFailure;
     }
 
-    MEMSET_S(&listOfPDevices, sizeof(listOfPDevices), 0, sizeof(listOfPDevices));
+    MEMSET_S(&listOfPDevices, sizeof(listOfPDevices), 0, 10*sizeof(listOfPDevices));
     MEMSET_S(&lstBtrCoreListOfSDevices, sizeof(lstBtrCoreListOfSDevices), 0, sizeof(lstBtrCoreListOfSDevices));
     lenBtrCoreRet = BTRCore_GetListOfPairedDevices(ghBTRCoreHdl, &listOfPDevices);
     if (lenBtrCoreRet == enBTRCoreSuccess) {
