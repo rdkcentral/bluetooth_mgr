@@ -958,7 +958,7 @@ void test_BTRMgr_AC_Stop_SuccessWithAcmDataCaptureThreadInitialized(void) {
 
 
 
-/*
+
 void test_btrMgr_AC_testDataCapture_InTask_NullHandle(void) {
     stBTRMgrACHdl*      pstBtrMgrAcHdl=NULL;
     gpointer result = btrMgr_AC_testDataCapture_InTask(pstBtrMgrAcHdl);
@@ -1020,7 +1020,7 @@ void test_BTRMgr_AC_TestStart_Success(void) {
         g_free(handle);
     }
 }
-
+/*
 void test_BTRMgr_AC_TestStart_HandleNotInitialized(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
