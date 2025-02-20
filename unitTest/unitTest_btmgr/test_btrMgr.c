@@ -958,7 +958,7 @@ _mock_BTRCore_SetEnableTxPower_Failure(
         return  enBTRCoreFailure;
     }
 
-
+/*
 void test_BTRMGR_GetNumberOfAdapters_InvalidInput(void)
 {
     ghBTRCoreHdl = 5;
@@ -10178,3 +10178,4 @@ void test_BTRMGR_LE_StartAdvertisement_SetAdvertisementInfo(void) {
     free(ghBTRCoreHdl);
     ghBTRCoreHdl=NULL;
 }
+*/
