@@ -1012,16 +1012,18 @@ void test_BTRMgr_AC_TestStart_Success(void) {
     eBTRMgrRet result = BTRMgr_AC_TestStart(handle, &settings, dataReadyCb, statusCb, userData);
     TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
 }
-/*
+
     // Clean up
     if (handle) {
+       /* 
         stBTRMgrACHdl* pstHandle = (stBTRMgrACHdl*)handle;
-        g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);
+        //g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);
         g_thread_unref(pstHandle->pBtrMgrTestDataCapGThread);
+        */
         g_free(handle);
     }
 }
-*/
+
 void test_BTRMgr_AC_TestStart_HandleNotInitialized(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
