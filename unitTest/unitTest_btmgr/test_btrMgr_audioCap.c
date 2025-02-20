@@ -1011,7 +1011,6 @@ void test_BTRMgr_AC_TestStart_Success(void) {
 
     eBTRMgrRet result = BTRMgr_AC_TestStart(handle, &settings, dataReadyCb, statusCb, userData);
     TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
-}
 
     // Clean up
     if (handle) {
