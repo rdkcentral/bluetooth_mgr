@@ -266,15 +266,15 @@ STATIC char                             gPrePropertyValue[BTRMGR_MAX_STR_LEN]   
 
 
 static char * BTRMGR_REMOTE_OUI_VALUES[] = {
-        "20:44:41", // LC103
-        "E8:0F:C8", // EC302
-        "98:06:3A", // EC201
-        "18:46:44", // EC201
-        "20:E7:B6", //Platco
-        "E4:A6:34", //Platco
-        "B8:F2:55", //Platco
-        "1C:41:90", //Platco
-        "B4:CB:B8",  //P-Xumo XR100
+        "20:44:41",
+        "E8:0F:C8",
+        "98:06:3A",
+        "18:46:44",
+        "20:E7:B6",
+        "E4:A6:34",
+        "B8:F2:55",
+        "1C:41:90",
+        "B4:CB:B8",
         NULL
 };
 
