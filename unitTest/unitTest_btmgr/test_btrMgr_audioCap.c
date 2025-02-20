@@ -997,7 +997,7 @@ void test_BTRMgr_AC_TestInit_Success(void) {
         g_free(handle);
     }
 }
-/*
+
 //////////////////////////////////////////
 void test_BTRMgr_AC_TestStart_Success(void) {
     tBTRMgrAcHdl handle = NULL;
@@ -1011,7 +1011,8 @@ void test_BTRMgr_AC_TestStart_Success(void) {
 
     eBTRMgrRet result = BTRMgr_AC_TestStart(handle, &settings, dataReadyCb, statusCb, userData);
     TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
-
+}
+/*
     // Clean up
     if (handle) {
         stBTRMgrACHdl* pstHandle = (stBTRMgrACHdl*)handle;
