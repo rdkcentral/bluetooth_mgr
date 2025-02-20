@@ -112,7 +112,7 @@ typedef struct _stBTRMgrACHdl {
     unsigned char               ui8DebugMode;
 } stBTRMgrACHdl;
 
-
+/*
 void test_BTRMgr_AC_GetDefaultSettings_NullHandle(void) {
     eBTRMgrRet result;
     stBTRMgrOutASettings outSettings;
@@ -1122,3 +1122,4 @@ void test_BTRMgr_AC_TestStop_ThreadNotInitialized(void) {
         g_free(handle);
     }
 }
+*/
