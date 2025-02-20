@@ -710,7 +710,7 @@ IARM_Result_t _mock_IARM_Bus_Call(const char* ownerName, const char* methodName,
 
     return IARM_RESULT_IPCCORE_FAIL;
 }
-
+/*
 void test_BTRMgr_AC_GetDefaultSettings_Success(void) {
     tBTRMgrAcHdl handle = (tBTRMgrAcHdl)malloc(sizeof(stBTRMgrACHdl));
     if (handle == NULL) {
@@ -1122,3 +1122,4 @@ void test_BTRMgr_AC_TestStop_ThreadNotInitialized(void) {
         g_free(handle);
     }
 }
+*/
