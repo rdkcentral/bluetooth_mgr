@@ -83,6 +83,8 @@
 #define BTMGR_AVDTP_SUSPEND_MAX_RETRIES 3
 #define BTRMGR_DISCOVERY_HOLD_OFF_TIME      120
 #define BTRMGR_UNITACTIVATION_STATUS_CHECK_TIME_INTERVAL 20
+#define BTRMGR_REMOTE_CONTROL_APPEARANCE 0x0180
+#define BTRMGR_REMOTE_OUI_LENGTH 8
 
 #define BTRMGR_BATTERY_DISCOVERY_TIMEOUT             360
 #define BTRMGR_BATTERY_DISCOVERY_TIME_INTERVAL       30
@@ -261,6 +263,20 @@ STATIC volatile guint                   gdeviceActstChangeTimeOutRef = 0;
 STATIC volatile guint                   gProvisionNotifyTimerHdl     = 0;
 STATIC char                             gPrePropertyValue[BTRMGR_MAX_STR_LEN]   = {'\0'};
 #endif
+
+
+static char * BTRMGR_REMOTE_OUI_VALUES[] = {
+        "20:44:41", // LC103
+        "E8:0F:C8", // EC302
+        "98:06:3A", // EC201
+        "18:46:44", // EC201
+        "20:E7:B6", //Platco
+        "E4:A6:34", //Platco
+        "B8:F2:55", //Platco
+        "1C:41:90", //Platco
+        "B4:CB:B8",  //P-Xumo XR100
+        NULL
+};
 
 BTRMGR_LeCustomAdvertisement_t stCoreCustomAdv =
 {
@@ -3913,6 +3929,31 @@ BTRMGR_Init (
     return lenBtrMgrResult;
 }
 
+static BOOLEAN btrMgr_IsDeviceRdkRcu(
+                    char * pcAddress,
+                    unsigned short ui16Appearance
+) {
+    unsigned char i;
+    if (pcAddress == NULL)
+    {
+            BTRMGRLOG_ERROR("Received NULL mac address\n");
+            return FALSE;
+    }
+    if (ui16Appearance == BTRMGR_REMOTE_CONTROL_APPEARANCE)
+    {
+            BTRMGRLOG_ERROR("Device appearance is remote control\n");
+            return TRUE;
+    }
+    for (i = 0; BTRMGR_REMOTE_OUI_VALUES[i] != NULL; i++)
+    {
+        if(!strncmp(pcAddress, BTRMGR_REMOTE_OUI_VALUES[i], BTRMGR_REMOTE_OUI_LENGTH))
+        {
+              BTRMGRLOG_ERROR("Device OUI matches remote control\n");
+              return TRUE;
+        }
+    }
+    return FALSE;
+}
 
 BTRMGR_Result_t
 BTRMGR_DeInit (
@@ -3949,7 +3990,9 @@ BTRMGR_DeInit (
             enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
 
             BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
-            if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
+          if (!btrMgr_IsDeviceRdkRcu (lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceAddress, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec))
+          {
+             if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
                 BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
             }
 
@@ -3961,7 +4004,8 @@ BTRMGR_DeInit (
                     lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
                 } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
             } while (--ui32confirmIdx);
-        }
+          }
+       }
     }
 
     if (gConnPwrStChangeTimeOutRef) {
