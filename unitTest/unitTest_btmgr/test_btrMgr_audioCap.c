@@ -999,7 +999,7 @@ void test_BTRMgr_AC_TestInit_Success(void) {
 }
 
 //////////////////////////////////////////
-/*
+
 void test_BTRMgr_AC_TestStart_Success(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
@@ -1016,12 +1016,17 @@ void test_BTRMgr_AC_TestStart_Success(void) {
     // Clean up
     if (handle) {
         stBTRMgrACHdl* pstHandle = (stBTRMgrACHdl*)handle;
-        g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);
-        g_thread_unref(pstHandle->pBtrMgrTestDataCapGThread);
-        g_free(handle);
+        if (pstHandle->pBtrMgrTestDataCapGAOpQueue) {
+            g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);}
+        if (pstHandle->pBtrMgrTestDataCapGThread) {
+            g_thread_unref(pstHandle->pBtrMgrTestDataCapGThread);
+        }
+        if (handle) {
+            g_free(handle);
+        }
     }
 }
-*/
+
 void test_BTRMgr_AC_TestStart_HandleNotInitialized(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
