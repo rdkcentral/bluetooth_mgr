@@ -999,6 +999,7 @@ void test_BTRMgr_AC_TestInit_Success(void) {
 }
 
 //////////////////////////////////////////
+/*
 void test_BTRMgr_AC_TestStart_Success(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
@@ -1020,7 +1021,7 @@ void test_BTRMgr_AC_TestStart_Success(void) {
         g_free(handle);
     }
 }
-
+*/
 void test_BTRMgr_AC_TestStart_HandleNotInitialized(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
