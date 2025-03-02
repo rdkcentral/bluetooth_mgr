@@ -997,36 +997,6 @@ void test_BTRMgr_AC_TestInit_Success(void) {
         g_free(handle);
     }
 }
-
-//////////////////////////////////////////
-
-void test_BTRMgr_AC_TestStart_Success(void) {
-    tBTRMgrAcHdl handle = NULL;
-    stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
-    fPtr_BTRMgr_AC_DataReadyCb dataReadyCb = NULL;
-    fPtr_BTRMgr_AC_StatusCb statusCb = NULL;
-    void* userData = NULL;
-
-    // Initialize handle
-    BTRMgr_AC_TestInit(&handle, 1, "/tmp/test_socket");
-
-    eBTRMgrRet result = BTRMgr_AC_TestStart(handle, &settings, dataReadyCb, statusCb, userData);
-    TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
-
-    // Clean up
-    if (handle) {
-        stBTRMgrACHdl* pstHandle = (stBTRMgrACHdl*)handle;
-        if (pstHandle->pBtrMgrTestDataCapGAOpQueue) {
-            g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);}
-        if (pstHandle->pBtrMgrTestDataCapGThread) {
-            g_thread_unref(pstHandle->pBtrMgrTestDataCapGThread);
-        }
-        if (handle) {
-            g_free(handle);
-        }
-    }
-}
-
 void test_BTRMgr_AC_TestStart_HandleNotInitialized(void) {
     tBTRMgrAcHdl handle = NULL;
     stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
@@ -1083,11 +1053,6 @@ void test_BTRMgr_AC_TestStart_ThreadNotInitialized(void) {
         g_free(handle);
     }
 }
-
-
-
-///////////////////////////////////////////
-
 void test_BTRMgr_AC_TestStop_Success(void) {
     tBTRMgrAcHdl handle = NULL;
 
@@ -1126,5 +1091,32 @@ void test_BTRMgr_AC_TestStop_ThreadNotInitialized(void) {
     if (handle) {
         g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);
         g_free(handle);
+    }
+}
+
+void test_BTRMgr_AC_TestStart_Success(void) {
+    tBTRMgrAcHdl handle = NULL;
+    stBTRMgrOutASettings settings = { .i32BtrMgrOutBufMaxSize = 1024 };
+    fPtr_BTRMgr_AC_DataReadyCb dataReadyCb = NULL;
+    fPtr_BTRMgr_AC_StatusCb statusCb = NULL;
+    void* userData = NULL;
+
+    // Initialize handle
+    BTRMgr_AC_TestInit(&handle, 1, "/tmp/test_socket");
+
+    eBTRMgrRet result = BTRMgr_AC_TestStart(handle, &settings, dataReadyCb, statusCb, userData);
+    TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
+
+    // Clean up
+    if (handle) {
+        stBTRMgrACHdl* pstHandle = (stBTRMgrACHdl*)handle;
+        if (pstHandle->pBtrMgrTestDataCapGAOpQueue) {
+            g_async_queue_unref(pstHandle->pBtrMgrTestDataCapGAOpQueue);}
+        if (pstHandle->pBtrMgrTestDataCapGThread) {
+            g_thread_unref(pstHandle->pBtrMgrTestDataCapGThread);
+        }
+        if (handle) {
+            g_free(handle);
+        }
     }
 }
