@@ -49,7 +49,6 @@
 
 static bool gbExitBTRMgr = false;
 
-
 static void
 btrMgr_SignalHandler (
     int i32SignalNumber
