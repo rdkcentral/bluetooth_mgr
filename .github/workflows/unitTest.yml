@@ -39,7 +39,7 @@ jobs:
 
     - name: download btcore 
       run: |
-        git clone https://${{ secrets.RDKCM_RDKE }}@github.com/rdkcentral/bluetooth.git src/btrcore/
+        git clone https://github.com/rdkcentral/bluetooth.git src/btrcore/
 
     - name: download bluez 
       run: |
