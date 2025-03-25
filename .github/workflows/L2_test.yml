@@ -83,7 +83,7 @@ jobs:
         ls /etc/dbus-1/system.d
 
     - name: Install Python dependencies
-      run: pip3 install dbus-python PyGObject
+      run: pip3 install dbus-python PyGObject==3.50.0
 
     - name: run python in background
       run: |
