@@ -20,9 +20,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install libbluetooth-dev libtool m4 automake autoconf libdbus-1-dev libudev-dev libcjson-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-tools libcurl4-openssl-dev libglib2.0-dev gobject-introspection libgirepository-1.0-dev bluez libcairo2-dev pkg-config
-        export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
-        export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0
+        sudo apt-get install libbluetooth-dev libtool m4 automake autoconf libdbus-1-dev libudev-dev libcjson-dev libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-tools libcurl4-openssl-dev libglib2.0-dev gobject-introspection libgirepository1.0-dev bluez libcairo2-dev pkg-config
 
     - name: download bluez 
       run: |
@@ -85,16 +83,11 @@ jobs:
         ls /etc/dbus-1/system.d
 
     - name: Install Python dependencies
-      run: |
-              export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
-              export GI_TYPELIB_PATH=/usr/lib/x86_64-linux-gnu/girepository-1.0
-              pip3 install dbus-python PyGObject
+      run: pip3 install dbus-python PyGObject
 
     - name: run python in background
       run: |
         sudo python3 tests/bluezMockV2.py > ./bluezMockLogs.txt &
-        sleep 5
-        ls -l ./bluezMockLogs.txt
 
     - name: run dbus monitor
       run: |
