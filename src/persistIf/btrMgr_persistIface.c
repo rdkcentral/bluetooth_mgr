@@ -687,7 +687,7 @@ BTRMgr_PI_AddProfile (
 
     if (BTRMgr_PI_GetAllProfiles(hBTRMgrPiHdl,&piData) == eBTRMgrFailure)
     {
-        BTRMGRLOG_ERROR("Failed to get all profiles so adding the profiles again based on the profile count ...");
+        BTRMGRLOG_WARN("Unable to retrieve profiles due to file corruption or missing files. New profiles will be added ... \n");
     }
     int profileCount = piData.numOfProfiles;
     if( profileCount > 0) { // Seems like some profile are already there, So append data
