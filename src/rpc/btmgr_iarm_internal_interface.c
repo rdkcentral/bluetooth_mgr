@@ -2289,6 +2289,10 @@ btrMgr_EventCallback (
         BTRMGRLOG_WARN ("Post Device Pairing Failed event\n");
         lenIarmResult = IARM_Bus_BroadcastEvent(IARM_BUS_BTRMGR_NAME, (IARM_EventId_t) BTRMGR_IARM_EVENT_DEVICE_PAIRING_FAILED, (void *)&lstEventMessage, sizeof(lstEventMessage));
     }
+    else if (lstEventMessage.m_eventType == BTRMGR_EVENT_DEVICE_UNSUPPORTED) {
+        BTRMGRLOG_WARN ("Post Device Unsupported event\n");
+        lenIarmResult = IARM_Bus_BroadcastEvent(IARM_BUS_BTRMGR_NAME, (IARM_EventId_t) BTRMGR_IARM_EVENT_DEVICE_UNSUPPORTED, (void *)&lstEventMessage, sizeof(lstEventMessage));
+    }
     else if (lstEventMessage.m_eventType == BTRMGR_EVENT_DEVICE_UNPAIRING_FAILED) {
         BTRMGRLOG_WARN ("Post Device UnPairing Failed event\n");
         lenIarmResult = IARM_Bus_BroadcastEvent(IARM_BUS_BTRMGR_NAME, (IARM_EventId_t) BTRMGR_IARM_EVENT_DEVICE_UNPAIRING_FAILED, (void *)&lstEventMessage, sizeof(lstEventMessage));

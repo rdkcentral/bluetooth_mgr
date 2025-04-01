@@ -73,6 +73,7 @@
 #define BTRMGR_SIGNAL_FAIR       (-70)
 #define BTRMGR_SIGNAL_GOOD       (-60)
 
+#define BTRMGR_MODALIAS_RETRY_ATTEMPTS      3
 #define BTRMGR_CONNECT_RETRY_ATTEMPTS       2
 #define BTRMGR_PAIR_RETRY_ATTEMPTS          10
 #define BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS 3
@@ -5009,6 +5010,8 @@ BTRMGR_PairDevice (
 
     if(lenBTRCoreDevTy == enBTRCoreHID) {
         if(!ui8isDevicePaired) {
+            unsigned char ui8IgnorePairFaildMsg = 0;
+
             if(bIsPS4) {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_COMPLETE;
                 lstEventMessage.m_discoveredDevice.m_isPairedDevice = 1;
@@ -5016,9 +5019,19 @@ BTRMGR_PairDevice (
             } else {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
                 lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
+
+                // Xbox gen4 firmware 5.9 is not supported in bluetooth 5.0 and 4.9
+                if (BTRCORE_XBOX_VENDOR_ID == stDeviceInfo.ui32ModaliasVendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == stDeviceInfo.ui32ModaliasProductId &&
+                        BTRCORE_XBOX_GEN4_DEF_FIRMWARE == stDeviceInfo.ui32ModaliasDeviceId ) {
+                    char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
+                    if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
+                        BTRMGRLOG_INFO ("Failed to pair due to unsupported device\n");
+                        ui8IgnorePairFaildMsg = 1; // As per the requirement we have to send only unsupported event for incompatibility devices
+                    }
+                }
             }
 
-            if (gfpcBBTRMgrEventOut) {
+            if (gfpcBBTRMgrEventOut && !ui8IgnorePairFaildMsg ) {
                 gfpcBBTRMgrEventOut(lstEventMessage);
             }
             //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
@@ -9041,6 +9054,7 @@ btrMgr_DeviceStatusCb (
     enBTRCoreRet            lenBtrCoreRet   = enBTRCoreSuccess;
     BTRMGR_EventMessage_t   lstEventMessage;
     BTRMGR_DeviceType_t     lBtrMgrDevType  = BTRMGR_DEVICE_TYPE_UNKNOWN;
+    stBTRCoreBTDevice       stDeviceInfo;
 #ifndef LE_MODE
     static guint8           ui8BtrMgrAvdtpReconnections = 0;
 #endif
@@ -9059,6 +9073,51 @@ btrMgr_DeviceStatusCb (
              return lenBtrCoreRet;
         }
 
+        if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
+            (lBtrMgrDevType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD || lBtrMgrDevType == BTRMGR_DEVICE_TYPE_HID)) {
+            //btrMgr_GetDeviceDetails method call communicate with bluez.
+            if((p_StatusCB->eDeviceCurrState == enBTRCoreDevStPaired) && (p_StatusCB->ui32VendorId == 0)) {
+                unsigned int ui32retrycount = BTRMGR_MODALIAS_RETRY_ATTEMPTS;
+
+                do {
+                    btrMgr_GetDeviceDetails(p_StatusCB->deviceId,&stDeviceInfo);
+                    BTRMGRLOG_INFO ("btrMgr_DeviceStatusCb callaback v%04Xp%04Xd%04X\n", stDeviceInfo.ui32ModaliasVendorId,
+                                    stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+
+                    //wait some time to update the modalias from bluez to btmgr. here only retry for paired event
+                    if ((stDeviceInfo.ui32ModaliasVendorId == 0) && ui32retrycount) {
+                        BTRMGRLOG_INFO("usleep executed to update the modalias...\n");
+                        usleep(100000); // Delay for 100 milliseconds
+                    }
+                    else {
+                        break;
+                    }
+                } while (ui32retrycount--); //300 ms
+
+                p_StatusCB->ui32VendorId = stDeviceInfo.ui32ModaliasVendorId;
+                p_StatusCB->ui32ProductId = stDeviceInfo.ui32ModaliasProductId;
+                p_StatusCB->ui32DeviceId = stDeviceInfo.ui32ModaliasDeviceId;
+            }
+
+            BTRMGRLOG_INFO ("btrMgr_DeviceStatusCb callaback v%04Xp%04Xd%04X\n", p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
+
+            if (BTRCORE_XBOX_VENDOR_ID == p_StatusCB->ui32VendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == p_StatusCB->ui32ProductId &&
+                    BTRCORE_XBOX_GEN4_DEF_FIRMWARE == p_StatusCB->ui32DeviceId) {
+                char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
+                if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
+                    if (p_StatusCB->eDeviceCurrState != enBTRCoreDevStUnsupported) {
+                        BTRMGRLOG_INFO ("Ignored notification to UI for incompatible device v%04Xp%04Xd%04X\n",
+                        p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
+
+                        return lenBtrCoreRet;
+                    }
+                }
+                else {
+                    BTRMGRLOG_INFO ("Failed to get BT version\n");
+                }
+            }
+        }
+ 
         switch (p_StatusCB->eDeviceCurrState) {
         case enBTRCoreDevStPaired:
             /* Post this event only for HID Devices and Audio-In Devices */
@@ -9166,7 +9225,12 @@ btrMgr_DeviceStatusCb (
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                              (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
                         BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
-                        if(ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle)
+                        /* Skipped posting the connection completion event here if the device tries to auto-connect
+                        * post disconnection from UI, Based on the connect wrapper initiated from UI connection
+                        * completion event will be posted.
+                        */
+                        if ((ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) ||
+                            (p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected))
                             break;
                         if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                             (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState) &&
@@ -9544,6 +9608,24 @@ btrMgr_DeviceStatusCb (
 #endif
             }
             else {
+            }
+            break;
+        case enBTRCoreDevStUnsupported:
+            BTRMGRLOG_INFO("enBTRCoreDevStUnsupported event notification!\n");
+            btrMgr_GetDiscoveredDevInfo (p_StatusCB->deviceId, &lstEventMessage.m_discoveredDevice);
+            lstEventMessage.m_discoveredDevice.m_deviceHandle       = p_StatusCB->deviceId;
+            lstEventMessage.m_discoveredDevice.m_deviceType         = (p_StatusCB->eDeviceType == enBTRCoreHID) ? BTRMGR_DEVICE_TYPE_HID : lBtrMgrDevType;
+            lstEventMessage.m_discoveredDevice.m_isPairedDevice     = p_StatusCB->isPaired;
+            lstEventMessage.m_discoveredDevice.m_ui32DevClassBtSpec = p_StatusCB->ui32DevClassBtSpec;
+            lstEventMessage.m_discoveredDevice.m_ui16DevAppearanceBleSpec = p_StatusCB->ui16DevAppearanceBleSpec;
+            strncpy(lstEventMessage.m_discoveredDevice.m_name, p_StatusCB->deviceName,
+                        strlen(p_StatusCB->deviceName) < BTRMGR_NAME_LEN_MAX ? strlen (p_StatusCB->deviceName) : BTRMGR_NAME_LEN_MAX - 1);
+            strncpy(lstEventMessage.m_discoveredDevice.m_deviceAddress, p_StatusCB->deviceAddress,
+                        strlen(p_StatusCB->deviceAddress) < BTRMGR_NAME_LEN_MAX ? strlen (p_StatusCB->deviceAddress) : BTRMGR_NAME_LEN_MAX - 1);
+            lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_UNSUPPORTED;
+
+            if (gfpcBBTRMgrEventOut) {
+                gfpcBBTRMgrEventOut(lstEventMessage);  /* Post a callback */
             }
             break;
         default:
