@@ -5996,7 +5996,6 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                             && ghBTRMgrDevHdlCurStreaming == 0 ) {
                             if (lDeviceHandle == ghBTRMgrDevHdlStreamStartUp) {
                                 BTRMGRLOG_INFO("Pairing/Connection in progress for this audio device, so accepting the connection\n");
-                                api32ConnInAuthResp = 1;
                             }
 
                             stBTRCoreBTDevice stDeviceInfo;
@@ -6059,8 +6058,8 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                             gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
                         else
                             gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
-                        continue;
-#endif //AUTO_CONNECT_ENABLED
+                    }
+#else //!AUTO_CONNECT_ENABLED
 
                         if ((lenBtrMgrResult == BTRMGR_RESULT_GENERIC_FAILURE) ||
                            (!strncmp(lPropValue, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)) &&
@@ -6077,6 +6076,7 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                             gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
                         }
                     }
+#endif //!AUTO_CONNECT_ENABLED
                     if (lastConnected)
                     {
                         ghBTRMgrDevHdlLastConnected = lDeviceHandle;
@@ -9367,13 +9367,6 @@ btrMgr_DeviceStatusCb (
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                              (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
                         BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
-                        /* Skipped posting the connection completion event here if the device tries to auto-connect
-                        * post disconnection from UI, Based on the connect wrapper initiated from UI connection
-                        * completion event will be posted.
-                        */
-                        if ((ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) ||
-                            (p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected))
-                            break;
                         if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                             (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress)) {
@@ -9442,6 +9435,12 @@ btrMgr_DeviceStatusCb (
                     if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                         (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
                         lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
+                        /*Skipped posting the connection completion event here if the device tries to
+                        *auto-connect post disconnection from UI. Based on the connect wrapper initiated
+                        *from UI, the connection completion event will be posted*/
+                        if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected)
+                        break;
+
                         BTRMGRLOG_WARN ("Sending Event for HID \n");
                         btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
                         BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
