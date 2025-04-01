@@ -37,9 +37,25 @@ jobs:
         bundle install 
         gem install ceedling -v 0.31.1
 
+    - name: Get branch name
+      id: get_branch
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          BRANCH_NAME=${{ github.head_ref }}
+        else
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+        fi
+        echo "Current branch: $BRANCH_NAME"
+        echo "::set-output name=branch_name::$BRANCH_NAME"
+
     - name: download btcore 
       run: |
         git clone https://github.com/rdkcentral/bluetooth.git src/btrcore/
+        cd src/btrcore
+        echo "Checking out branch: ${{steps.get_branch.outputs.branch_name}}"
+        git checkout ${{steps.get_branch.outputs.branch_name}}
+        echo "Download and checkout completed."
+      continue-on-error: true
 
     - name: download bluez 
       run: |

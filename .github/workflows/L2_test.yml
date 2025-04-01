@@ -13,9 +13,24 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: download btcore 
+    - name: Get btMgr branch name
+      id: get_branch
+      run: echo "::set-output name=branch_name::$(git rev-parse --abbrev-ref HEAD)"
+
+    - name: Check if branch exists in core
+      id: check_branch
       run: |
-        git clone https://github.com/rdkcentral/bluetooth.git btrcore/
+        BRANCH_NAME=${{ steps.get_branch.outputs.branch_name }}
+        git ls-remote --heads https://github.com/rdkcentral/bluetooth.git $BRANCH_NAME | grep -q $BRANCH_NAME
+        echo "::set-output name=branch_exists::true" || echo "::set-output name=branch_exists::false"
+
+    - name: download btcore
+       if: steps.check_branch.outputs.branch_exists == 'true'
+      run: |
+         git clone --branch ${{ steps.get_branch.outputs.branch_name }} https://github.com/rdkcentral/bluetooth.git btrcore/
+       else:
+         run: |
+           git clone https://github.com/rdkcentral/bluetooth.git btrcore/
 
     - name: Install Dependencies
       run: |
