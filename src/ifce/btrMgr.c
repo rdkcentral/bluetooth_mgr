@@ -179,7 +179,6 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlConnInProgress = 0;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 #endif
-static gboolean                         isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrBgDiscoveryHdl;
@@ -3752,7 +3751,6 @@ BTRMGR_Init (
     GThread*        pMainLoopThread= NULL;
 
     char            lpcBtVersion[BTRCORE_STR_LEN] = {'\0'};
-    isDeinitInProgress = FALSE;
 
     if (ghBTRCoreHdl) {
         BTRMGRLOG_WARN("Already Inited; Return Success\n");
@@ -3928,7 +3926,7 @@ BTRMGR_DeInit (
     unsigned short                  ui16LoopIdx       = 0;
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
     unsigned int                    ui32sleepTimeOut = 1;
-    isDeinitInProgress = TRUE;
+
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
@@ -10118,8 +10116,7 @@ btrMgr_ConnectionInAuthenticationCb (
             ((BTRMGR_XBOX_ELITE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ELITE_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_XBOX_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_XBOX_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_NINTENDO_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_NINTENDO_GAMESIR_PRODUCT_ID == ui32MProductId) ||
-            (BTRMGR_XBOX_ADAPTIVE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ADAPTIVE_PRODUCT_ID == ui32MProductId))) &&
-            isDeinitInProgress != TRUE) {
+            (BTRMGR_XBOX_ADAPTIVE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ADAPTIVE_PRODUCT_ID == ui32MProductId)))) {
 
             if (apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlPairingInProgress &&
                 apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlConnInProgress) {
