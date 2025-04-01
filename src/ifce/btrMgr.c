@@ -84,6 +84,7 @@
 #define BTMGR_AVDTP_SUSPEND_MAX_RETRIES 3
 #define BTRMGR_DISCOVERY_HOLD_OFF_TIME      120
 #define BTRMGR_UNITACTIVATION_STATUS_CHECK_TIME_INTERVAL 20
+#define BTRMGR_MODELINE_MAX_LEN 38
 
 #define BTRMGR_BATTERY_DISCOVERY_TIMEOUT             360
 #define BTRMGR_BATTERY_DISCOVERY_TIME_INTERVAL       30
@@ -118,7 +119,11 @@ typedef enum _BTRMGR_DiscoveryState_t {
     BTRMGR_DISCOVERY_ST_STOPPED,
 } BTRMGR_DiscoveryState_t;
 
-
+typedef enum _enBTRMGR_Mode_t {
+    BTRMGR_MODE_ON = 0,
+    BTRMGR_MODE_OFF,
+    BTRMGR_MODE_UNKNOWN,
+} _enBTRMGR_Mode_t;
 
 #ifndef LE_MODE
 
@@ -10911,6 +10916,51 @@ btrMgr_BatteryOperations(void)
 }
 #endif
 
+static _enBTRMGR_Mode_t modeVal()
+{
+    FILE *fp = NULL;
+    char line[BTRMGR_MODELINE_MAX_LEN]; //Buffer to hold mode line + '\0'
+    _enBTRMGR_Mode_t mode_value = BTRMGR_MODE_UNKNOWN;
+
+    // initialization
+    memset(line, '\0', sizeof(line));
+
+    BTRMGRLOG_ERROR("Checking Mesh Active status\n");
+
+    /* Open the command for reading. */
+    fp = popen("ovsh s AW_Bluetooth_Config", "r");
+    if (fp == NULL) {
+        BTRMGRLOG_ERROR("Failed to run ovsh command for AW_Bluetooth_Config\n");
+        return BTRMGR_MODE_UNKNOWN;
+    }
+
+    /* Read the output a line at a time. */
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        /* Assign last char to NULL, read only BTRMGR_MODELINE_MAX_LEN chars */
+        line[BTRMGR_MODELINE_MAX_LEN - 1] = '\0';
+
+        if (strstr(line, "mode") != NULL) {
+            if(strstr(line, "on")) {
+                mode_value = BTRMGR_MODE_ON;
+            }
+            else if(strstr(line, "off")) {
+                mode_value = BTRMGR_MODE_OFF;
+            }
+            /* by default, mode_value is BTRMGR_MODE_UNKNOWN. So no need to
+             * assign it again, here in else case. */
+            BTRMGRLOG_INFO ("Mesh Mode Value: %d\n", mode_value);
+            break; // Exit loop after finding the mode
+        }
+    }
+
+    BTRMGRLOG_INFO ("Line checked: %s\n", line);
+
+    /* close */
+    pclose(fp);
+    fp = NULL;
+    return mode_value;
+}
+
 static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
 {
     char unitActStatus[BTRMGR_MAX_STR_LEN] = {"\0"};
@@ -10919,6 +10969,7 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
     static bool isLteEnabled = 0;
     bool newLteStatus = 0;
     int rc;
+    _enBTRMGR_Mode_t mode_val = BTRMGR_MODE_UNKNOWN;
 
     // check broadcast status
     btrMgr_CheckBroadcastAvailability();
@@ -10931,10 +10982,22 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
     }
 
     BTRMGRLOG_INFO("Checking unit activation Status\n");
+
+    mode_val = modeVal();
+
+    BTRMGRLOG_INFO ("mode_val: %d\n", mode_val);
+
+    if(unitActStatus[0] != '\0') {
+        BTRMGRLOG_INFO ("unitActStatus: %d\n", atoi(unitActStatus));
+    }
+    else {
+        BTRMGRLOG_INFO ("unitActStatus is NULL\n");
+    }
+
 #ifdef LE_MODE
     BTRMGR_SysDiagInfo(0, BTRMGR_UUID_PROVISION_STATUS, unitActStatus, BTRMGR_LE_OP_READ_VALUE);
-#endif    
-    if ((unitActStatus[0] != '\0') && (atoi(unitActStatus) == 1)) {
+#endif
+    if (((unitActStatus[0] != '\0') && (atoi(unitActStatus) == 1)) && (BTRMGR_MODE_OFF == mode_val)) {
 
         BTRMGRLOG_INFO("Device is Activated - gIsDeviceAdvertising - %d \n",gIsDeviceAdvertising);
         if (TRUE == gIsDeviceAdvertising) {
