@@ -9166,7 +9166,12 @@ btrMgr_DeviceStatusCb (
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                              (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
                         BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
-                        if(ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle)
+                        /* Skipped posting the connection completion event here if the device tries to auto-connect
+                        * post disconnection from UI, Based on the connect wrapper initiated from UI connection
+                        * completion event will be posted.
+                        */
+                        if ((ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) ||
+                            (p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected))
                             break;
                         if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                             (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState) &&
