@@ -73,6 +73,7 @@
 #define BTRMGR_SIGNAL_FAIR       (-70)
 #define BTRMGR_SIGNAL_GOOD       (-60)
 
+#define BTRMGR_MODALIAS_RETRY_ATTEMPTS      3
 #define BTRMGR_CONNECT_RETRY_ATTEMPTS       2
 #define BTRMGR_PAIR_RETRY_ATTEMPTS          10
 #define BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS 3
@@ -83,6 +84,7 @@
 #define BTMGR_AVDTP_SUSPEND_MAX_RETRIES 3
 #define BTRMGR_DISCOVERY_HOLD_OFF_TIME      120
 #define BTRMGR_UNITACTIVATION_STATUS_CHECK_TIME_INTERVAL 20
+#define BTRMGR_MODELINE_MAX_LEN 38
 
 #define BTRMGR_BATTERY_DISCOVERY_TIMEOUT             360
 #define BTRMGR_BATTERY_DISCOVERY_TIME_INTERVAL       30
@@ -90,6 +92,7 @@
 #define BTRMGR_BATTERY_CONNECT_TIME_INTERVAL         15
 #define BTRMGR_BATTERY_START_NOTIFY_TIME_INTERVAL    20
 #define BTRMGR_DEVICE_DISCONNECT_STATUS_TIME_INTERVAL 3
+#define BTRMGR_AUTOCONNECT_ON_STARTUP_TIMEOUT        40
 #define MAX_FIRMWARE_FILES                           5
 #define BTRMGR_DISCONNECT_CLEAR_STATUS_TIME_INTERVAL 10
 #define BTRMGR_POST_OUT_OF_RANGE_HOLD_OFF_TIME       6
@@ -116,7 +119,11 @@ typedef enum _BTRMGR_DiscoveryState_t {
     BTRMGR_DISCOVERY_ST_STOPPED,
 } BTRMGR_DiscoveryState_t;
 
-
+typedef enum _enBTRMGR_Mode_t {
+    BTRMGR_MODE_ON = 0,
+    BTRMGR_MODE_OFF,
+    BTRMGR_MODE_UNKNOWN,
+} _enBTRMGR_Mode_t;
 
 #ifndef LE_MODE
 
@@ -125,6 +132,7 @@ typedef enum _enBTRMGRStartupAudio {
     BTRMGR_STARTUP_AUD_SKIPPED,
     BTRMGR_STARTUP_AUD_COMPLETED,
     BTRMGR_STARTUP_AUD_UNKNOWN,
+    BTRMGR_STARTUP_AUD_RETRY,
 } enBTRMGRStartupAudio;
 
 // Move to private header ?
@@ -207,6 +215,9 @@ STATIC volatile guint                   gConnPwrStChangeTimeOutRef  = 0;
 STATIC volatile guint                   gConnPairCompRstTimeOutRef  = 0;
 STATIC volatile guint                   gAuthDisconnDevTimeOutRef   = 0;
 STATIC volatile guint                   gGetDevDisStatusTimeoutRef  = 0;
+#ifdef AUTO_CONNECT_ENABLED
+STATIC volatile guint                   gAutoConnStartUpTimeoutRef  = 0;
+#endif
 STATIC volatile guint                   gDisconnTimeoutRef          = 0;
 STATIC volatile unsigned int            gIsAdapterDiscovering       = 0;
 STATIC volatile guint                   deviceActstChangeTimeOutRef = 0;
@@ -448,6 +459,9 @@ static gpointer btrMgr_g_main_loop_Task (gpointer appvMainLoop);
 
 /* Incoming Callbacks Prototypes */
 static gboolean btrMgr_GetDeviceDisconnectStatusCb (gpointer gptr);
+#ifdef AUTO_CONNECT_ENABLED
+static gboolean btrMgr_AutoconnectOnStartUpStatusCb (gpointer gptr);
+#endif //AUTO_CONNECT_ENABLED
 static gboolean btrMgr_DiscoveryHoldOffTimerCb (gpointer gptr);
 static gboolean btrMgr_ConnPwrStChangeTimerCb (gpointer gptr);
 STATIC gboolean btrMgr_PairCompleteRstTimerCb (gpointer gptr);
@@ -1028,6 +1042,31 @@ static inline void btrMgr_ClearDeviceOORHoldOffTimer(void)
        gOORTimeOutRef = 0;
    }
 }
+
+#ifdef AUTO_CONNECT_ENABLED
+static inline void
+btrMgr_SetAutoconnectOnStartUpTimer (
+   void
+) {
+   GSource* source = g_timeout_source_new(BTRMGR_AUTOCONNECT_ON_STARTUP_TIMEOUT * 1000);
+   g_source_set_priority(source, G_PRIORITY_DEFAULT);
+   g_source_set_callback(source, btrMgr_AutoconnectOnStartUpStatusCb , NULL, NULL);
+
+   gAutoConnStartUpTimeoutRef = g_source_attach(source, gmainContext);
+   g_source_unref(source);
+
+   BTRMGRLOG_INFO ("Autoconnect on start up timeout - %u TimeOutReference - %u\n",BTRMGR_AUTOCONNECT_ON_STARTUP_TIMEOUT,gAutoConnStartUpTimeoutRef);
+}
+
+static inline void btrMgr_ClearAutoconnectOnStartUpTimer(void)
+{
+   if (gAutoConnStartUpTimeoutRef) {
+       BTRMGRLOG_DEBUG ("Cancelling Autoconnect start up retry Session : %u\n", gAutoConnStartUpTimeoutRef);
+       g_source_destroy(g_main_context_find_source_by_id(gmainContext, gAutoConnStartUpTimeoutRef));
+       gAutoConnStartUpTimeoutRef = 0;
+   }
+}
+#endif // AUTO_CONNECT_ENABLED
 
 #ifdef RDKTV_PERSIST_VOLUME
 static inline void btrMgr_ResetSkipVolumeUpdateTimer(void)
@@ -3338,6 +3377,15 @@ STATIC gboolean btrMgr_GetDeviceDisconnectStatusCb(gpointer user_data)
     }
     return G_SOURCE_CONTINUE;
 }
+#ifdef AUTO_CONNECT_ENABLED
+static gboolean btrMgr_AutoconnectOnStartUpStatusCb(gpointer user_data)
+{
+    gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_RETRY;
+    BTRMGR_StartAudioStreamingOut_StartUp(0, BTRMGR_DEVICE_OP_TYPE_AUDIO_OUTPUT);
+    btrMgr_ClearAutoconnectOnStartUpTimer();
+       return G_SOURCE_REMOVE;
+}
+#endif //AUTO_CONNECT_ENABLED
 
 static gboolean btrMgr_ClearLastPairedStatus(gpointer user_data)
 {
@@ -5009,6 +5057,8 @@ BTRMGR_PairDevice (
 
     if(lenBTRCoreDevTy == enBTRCoreHID) {
         if(!ui8isDevicePaired) {
+            unsigned char ui8IgnorePairFaildMsg = 0;
+
             if(bIsPS4) {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_COMPLETE;
                 lstEventMessage.m_discoveredDevice.m_isPairedDevice = 1;
@@ -5016,9 +5066,19 @@ BTRMGR_PairDevice (
             } else {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
                 lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
+
+                // Xbox gen4 firmware 5.9 is not supported in bluetooth 5.0 and 4.9
+                if (BTRCORE_XBOX_VENDOR_ID == stDeviceInfo.ui32ModaliasVendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == stDeviceInfo.ui32ModaliasProductId &&
+                        BTRCORE_XBOX_GEN4_DEF_FIRMWARE == stDeviceInfo.ui32ModaliasDeviceId ) {
+                    char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
+                    if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
+                        BTRMGRLOG_INFO ("Failed to pair due to unsupported device\n");
+                        ui8IgnorePairFaildMsg = 1; // As per the requirement we have to send only unsupported event for incompatibility devices
+                    }
+                }
             }
 
-            if (gfpcBBTRMgrEventOut) {
+            if (gfpcBBTRMgrEventOut && !ui8IgnorePairFaildMsg ) {
                 gfpcBBTRMgrEventOut(lstEventMessage);
             }
             //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
@@ -5870,6 +5930,16 @@ BTRMGR_StartAudioStreamingOut_StartUp (
     BTRMgrDeviceHandle      lDeviceHandle;
 
     BTRMGR_Result_t         lenBtrMgrResult = BTRMGR_RESULT_SUCCESS;
+#ifdef AUTO_CONNECT_ENABLED
+    enBTRCoreRet            lenBtrCoreRet = enBTRCoreSuccess;
+    int                     api32ConnInAuthResp = 1;
+    gboolean                lbSecondAttempt = false;
+
+    if (gIsAudOutStartupInProgress == BTRMGR_STARTUP_AUD_RETRY)
+    {
+        lbSecondAttempt = true;
+    }
+#endif //AUTO_CONNECT_ENABLED
 
     gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
     if (BTRMgr_PI_GetAllProfiles(ghBTRMgrPiHdl, &lstPersistentData) == eBTRMgrFailure) {
@@ -5906,6 +5976,90 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                             BTRMGRLOG_ERROR("Could not get diagnostic data\n");
                             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
                         }
+#ifdef AUTO_CONNECT_ENABLED
+                        //Before automatically starting audio, we should check if the device is connectable and then ask the upper layers
+                        unsigned int ui32sleepTimeOut = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS;
+                        unsigned int ui32confirmIdx = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS + 1;
+
+                        do {
+                            unsigned int ui32sleepIdx = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS;
+                            do {
+                                sleep(ui32sleepTimeOut);
+                                lenBtrCoreRet = BTRCore_IsDeviceConnectable(ghBTRCoreHdl, lDeviceHandle);
+                            } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
+                        } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32confirmIdx));
+
+                        if (lenBtrCoreRet != enBTRCoreSuccess)
+                            continue;
+
+                        if ((btrMgr_GetDevPaired(lDeviceHandle))
+                            && ghBTRMgrDevHdlCurStreaming == 0 ) {
+                            if (lDeviceHandle == ghBTRMgrDevHdlStreamStartUp) {
+                                BTRMGRLOG_INFO("Pairing/Connection in progress for this audio device, so accepting the connection\n");
+                            }
+
+                            stBTRCoreBTDevice stDeviceInfo;
+                            MEMSET_S(&stDeviceInfo, sizeof(stBTRCoreBTDevice), 0, sizeof(stBTRCoreBTDevice));
+                            if (eBTRMgrSuccess != btrMgr_GetDeviceDetails(lDeviceHandle,&stDeviceInfo)) {
+                                BTRMGRLOG_ERROR("Could not get device details\n");
+                                continue;
+                            }
+                            BTRMGR_EventMessage_t lstEventMessage;
+                            MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+                            lstEventMessage.m_eventType                            = BTRMGR_EVENT_RECEIVED_EXTERNAL_CONNECT_REQUEST;
+                            lstEventMessage.m_externalDevice.m_deviceHandle        = lDeviceHandle;
+                            lstEventMessage.m_externalDevice.m_deviceType          = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
+                            lstEventMessage.m_externalDevice.m_vendorID            = stDeviceInfo.ui32ModaliasVendorId;
+                            lstEventMessage.m_externalDevice.m_isLowEnergyDevice   = 0;
+                            strncpy(lstEventMessage.m_externalDevice.m_name, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
+                            strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
+
+                            //TODO: Check if XRE wants to bring up a Pop-up or Respond
+                            if (gfpcBBTRMgrEventOut) {
+                                gfpcBBTRMgrEventOut(lstEventMessage);     /* Post a callback */
+                            }
+
+                            {   /* Max 200msec timeout - Polled at 50ms second interval */
+                                unsigned int ui32sleepIdx = 4;
+
+                                do {
+                                    usleep(50000);
+                                } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
+
+                            }
+                            if (gEventRespReceived == 0) {
+                                if (!lbSecondAttempt)
+                                {
+                                    BTRMGRLOG_INFO("External connection response not received from UI Audio Out device - it is possible UI is not up yet, try again if device is there in 40 seconds\n");
+                                    btrMgr_SetAutoconnectOnStartUpTimer();
+                                    return BTRMGR_RESULT_SUCCESS;
+                                }
+                                else
+                                {
+                                    BTRMGRLOG_WARN("External connection response not received from UI Audio Out device for a second time\n");
+                                    api32ConnInAuthResp = 0;
+                                }
+                            } else {
+                                api32ConnInAuthResp = gAcceptConnection;
+                                if (gAcceptConnection) {
+                                    BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
+                                } else {
+                                    BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
+                                }
+                                gEventRespReceived = 0;
+                            }
+                        }
+                        else {
+                            BTRMGRLOG_ERROR ("Incoming Connection denied\n");
+                            api32ConnInAuthResp = 0;
+                        }
+                        //expect UI to connect to device to start stream
+                        if(api32ConnInAuthResp)
+                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
+                        else
+                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
+                    }
+#else //!AUTO_CONNECT_ENABLED
 
                         if ((lenBtrMgrResult == BTRMGR_RESULT_GENERIC_FAILURE) ||
                            (!strncmp(lPropValue, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)) &&
@@ -5922,6 +6076,7 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                             gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
                         }
                     }
+#endif //!AUTO_CONNECT_ENABLED
                     if (lastConnected)
                     {
                         ghBTRMgrDevHdlLastConnected = lDeviceHandle;
@@ -9041,6 +9196,7 @@ btrMgr_DeviceStatusCb (
     enBTRCoreRet            lenBtrCoreRet   = enBTRCoreSuccess;
     BTRMGR_EventMessage_t   lstEventMessage;
     BTRMGR_DeviceType_t     lBtrMgrDevType  = BTRMGR_DEVICE_TYPE_UNKNOWN;
+    stBTRCoreBTDevice       stDeviceInfo;
 #ifndef LE_MODE
     static guint8           ui8BtrMgrAvdtpReconnections = 0;
 #endif
@@ -9059,6 +9215,51 @@ btrMgr_DeviceStatusCb (
              return lenBtrCoreRet;
         }
 
+        if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
+            (lBtrMgrDevType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD || lBtrMgrDevType == BTRMGR_DEVICE_TYPE_HID)) {
+            //btrMgr_GetDeviceDetails method call communicate with bluez.
+            if((p_StatusCB->eDeviceCurrState == enBTRCoreDevStPaired) && (p_StatusCB->ui32VendorId == 0)) {
+                unsigned int ui32retrycount = BTRMGR_MODALIAS_RETRY_ATTEMPTS;
+
+                do {
+                    btrMgr_GetDeviceDetails(p_StatusCB->deviceId,&stDeviceInfo);
+                    BTRMGRLOG_INFO ("btrMgr_DeviceStatusCb callaback v%04Xp%04Xd%04X\n", stDeviceInfo.ui32ModaliasVendorId,
+                                    stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+
+                    //wait some time to update the modalias from bluez to btmgr. here only retry for paired event
+                    if ((stDeviceInfo.ui32ModaliasVendorId == 0) && ui32retrycount) {
+                        BTRMGRLOG_INFO("usleep executed to update the modalias...\n");
+                        usleep(100000); // Delay for 100 milliseconds
+                    }
+                    else {
+                        break;
+                    }
+                } while (ui32retrycount--); //300 ms
+
+                p_StatusCB->ui32VendorId = stDeviceInfo.ui32ModaliasVendorId;
+                p_StatusCB->ui32ProductId = stDeviceInfo.ui32ModaliasProductId;
+                p_StatusCB->ui32DeviceId = stDeviceInfo.ui32ModaliasDeviceId;
+            }
+
+            BTRMGRLOG_INFO ("btrMgr_DeviceStatusCb callaback v%04Xp%04Xd%04X\n", p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
+
+            if (BTRCORE_XBOX_VENDOR_ID == p_StatusCB->ui32VendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == p_StatusCB->ui32ProductId &&
+                    BTRCORE_XBOX_GEN4_DEF_FIRMWARE == p_StatusCB->ui32DeviceId) {
+                char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
+                if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
+                    if (p_StatusCB->eDeviceCurrState != enBTRCoreDevStUnsupported) {
+                        BTRMGRLOG_INFO ("Ignored notification to UI for incompatible device v%04Xp%04Xd%04X\n",
+                        p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
+
+                        return lenBtrCoreRet;
+                    }
+                }
+                else {
+                    BTRMGRLOG_INFO ("Failed to get BT version\n");
+                }
+            }
+        }
+ 
         switch (p_StatusCB->eDeviceCurrState) {
         case enBTRCoreDevStPaired:
             /* Post this event only for HID Devices and Audio-In Devices */
@@ -9166,8 +9367,6 @@ btrMgr_DeviceStatusCb (
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                              (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
                         BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
-                        if(ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle)
-                            break;
                         if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                             (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress)) {
@@ -9236,6 +9435,12 @@ btrMgr_DeviceStatusCb (
                     if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                         (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
                         lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
+                        /*Skipped posting the connection completion event here if the device tries to
+                        *auto-connect post disconnection from UI. Based on the connect wrapper initiated
+                        *from UI, the connection completion event will be posted*/
+                        if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected)
+                        break;
+
                         BTRMGRLOG_WARN ("Sending Event for HID \n");
                         btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
                         BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
@@ -9544,6 +9749,24 @@ btrMgr_DeviceStatusCb (
 #endif
             }
             else {
+            }
+            break;
+        case enBTRCoreDevStUnsupported:
+            BTRMGRLOG_INFO("enBTRCoreDevStUnsupported event notification!\n");
+            btrMgr_GetDiscoveredDevInfo (p_StatusCB->deviceId, &lstEventMessage.m_discoveredDevice);
+            lstEventMessage.m_discoveredDevice.m_deviceHandle       = p_StatusCB->deviceId;
+            lstEventMessage.m_discoveredDevice.m_deviceType         = (p_StatusCB->eDeviceType == enBTRCoreHID) ? BTRMGR_DEVICE_TYPE_HID : lBtrMgrDevType;
+            lstEventMessage.m_discoveredDevice.m_isPairedDevice     = p_StatusCB->isPaired;
+            lstEventMessage.m_discoveredDevice.m_ui32DevClassBtSpec = p_StatusCB->ui32DevClassBtSpec;
+            lstEventMessage.m_discoveredDevice.m_ui16DevAppearanceBleSpec = p_StatusCB->ui16DevAppearanceBleSpec;
+            strncpy(lstEventMessage.m_discoveredDevice.m_name, p_StatusCB->deviceName,
+                        strlen(p_StatusCB->deviceName) < BTRMGR_NAME_LEN_MAX ? strlen (p_StatusCB->deviceName) : BTRMGR_NAME_LEN_MAX - 1);
+            strncpy(lstEventMessage.m_discoveredDevice.m_deviceAddress, p_StatusCB->deviceAddress,
+                        strlen(p_StatusCB->deviceAddress) < BTRMGR_NAME_LEN_MAX ? strlen (p_StatusCB->deviceAddress) : BTRMGR_NAME_LEN_MAX - 1);
+            lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_UNSUPPORTED;
+
+            if (gfpcBBTRMgrEventOut) {
+                gfpcBBTRMgrEventOut(lstEventMessage);  /* Post a callback */
             }
             break;
         default:
@@ -10692,6 +10915,51 @@ btrMgr_BatteryOperations(void)
 }
 #endif
 
+static _enBTRMGR_Mode_t modeVal()
+{
+    FILE *fp = NULL;
+    char line[BTRMGR_MODELINE_MAX_LEN]; //Buffer to hold mode line + '\0'
+    _enBTRMGR_Mode_t mode_value = BTRMGR_MODE_UNKNOWN;
+
+    // initialization
+    memset(line, '\0', sizeof(line));
+
+    BTRMGRLOG_ERROR("Checking Mesh Active status\n");
+
+    /* Open the command for reading. */
+    fp = popen("ovsh s AW_Bluetooth_Config", "r");
+    if (fp == NULL) {
+        BTRMGRLOG_ERROR("Failed to run ovsh command for AW_Bluetooth_Config\n");
+        return BTRMGR_MODE_UNKNOWN;
+    }
+
+    /* Read the output a line at a time. */
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        /* Assign last char to NULL, read only BTRMGR_MODELINE_MAX_LEN chars */
+        line[BTRMGR_MODELINE_MAX_LEN - 1] = '\0';
+
+        if (strstr(line, "mode") != NULL) {
+            if(strstr(line, "on")) {
+                mode_value = BTRMGR_MODE_ON;
+            }
+            else if(strstr(line, "off")) {
+                mode_value = BTRMGR_MODE_OFF;
+            }
+            /* by default, mode_value is BTRMGR_MODE_UNKNOWN. So no need to
+             * assign it again, here in else case. */
+            BTRMGRLOG_INFO ("Mesh Mode Value: %d\n", mode_value);
+            break; // Exit loop after finding the mode
+        }
+    }
+
+    BTRMGRLOG_INFO ("Line checked: %s\n", line);
+
+    /* close */
+    pclose(fp);
+    fp = NULL;
+    return mode_value;
+}
+
 static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
 {
     char unitActStatus[BTRMGR_MAX_STR_LEN] = {"\0"};
@@ -10700,6 +10968,7 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
     static bool isLteEnabled = 0;
     bool newLteStatus = 0;
     int rc;
+    _enBTRMGR_Mode_t mode_val = BTRMGR_MODE_UNKNOWN;
 
     // check broadcast status
     btrMgr_CheckBroadcastAvailability();
@@ -10712,10 +10981,22 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
     }
 
     BTRMGRLOG_INFO("Checking unit activation Status\n");
+
+    mode_val = modeVal();
+
+    BTRMGRLOG_INFO ("mode_val: %d\n", mode_val);
+
+    if(unitActStatus[0] != '\0') {
+        BTRMGRLOG_INFO ("unitActStatus: %d\n", atoi(unitActStatus));
+    }
+    else {
+        BTRMGRLOG_INFO ("unitActStatus is NULL\n");
+    }
+
 #ifdef LE_MODE
     BTRMGR_SysDiagInfo(0, BTRMGR_UUID_PROVISION_STATUS, unitActStatus, BTRMGR_LE_OP_READ_VALUE);
-#endif    
-    if ((unitActStatus[0] != '\0') && (atoi(unitActStatus) == 1)) {
+#endif
+    if (((unitActStatus[0] != '\0') && (atoi(unitActStatus) == 1)) && (BTRMGR_MODE_OFF == mode_val)) {
 
         BTRMGRLOG_INFO("Device is Activated - gIsDeviceAdvertising - %d \n",gIsDeviceAdvertising);
         if (TRUE == gIsDeviceAdvertising) {

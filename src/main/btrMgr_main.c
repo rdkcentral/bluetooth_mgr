@@ -127,16 +127,6 @@ main (
         sd_notify(0, "STOPPING=1");
 #endif
 
-#ifdef IARM_RPC_ENABLED
-        BTRMgr_TermIARMMode();
-#else
-        BTRMgr_TermRBUSMode();
-#endif
-
-        time(&curr);
-        printf (" BTMgr Bus: BTRMgr_TermIARMMode %s\n", ctime(&curr));
-        fflush(stdout);
-
     }
 
 
@@ -154,6 +144,19 @@ main (
     time(&curr);
     printf ("BTRMGR_DeInit %d - %s\n", lenBtrMgrResult, ctime(&curr));
     fflush(stdout);
+
+    /* Since the IARM events will be generated during the deinit
+     * always terminate the IARM interface after Deinit.
+     */
+
+#ifdef IARM_RPC_ENABLED
+        BTRMgr_TermIARMMode();
+#else
+        BTRMgr_TermRBUSMode();
+#endif
+        time(&curr);
+        printf (" BTMgr Bus: BTRMgr_TermIARMMode %s\n", ctime(&curr));
+        fflush(stdout);
 
 #if defined(ENABLE_SD_NOTIFY)
     sd_notifyf(0, "STOPPING=1\n"

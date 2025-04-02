@@ -13,9 +13,23 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: download btcore 
+    - name: Get branch name
+      id: get_branch
       run: |
-        git clone https://github.com/rdkcentral/bluetooth.git btrcore/
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          BRANCH_NAME=${{ github.head_ref }}
+        else
+          BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+        fi
+        echo "Current branch: $BRANCH_NAME"
+        echo "::set-output name=branch_name::$BRANCH_NAME"
+
+    - name: download btcore
+      run: |
+        git clone https://github.com/rdkcentral/bluetooth.git src/btrcore/
+        cd src/btrcore
+        git checkout ${{ steps.get_branch.outputs.branch_name }}
+      continue-on-error: true
 
     - name: Install Dependencies
       run: |
@@ -32,7 +46,7 @@ jobs:
 
     - name: compile btcore 
       run: |
-          cd btrcore/
+          cd src/btrcore/
           pwd
           ls
           libtoolize --force

@@ -506,6 +506,7 @@ const char* getEventAsString (BTRMGR_Events_t etype)
     case BTRMGR_EVENT_MEDIA_PLAYER_MUTE                 : event = "MEDIA_PLAYER_MUTE";                   break;
     case BTRMGR_EVENT_MEDIA_PLAYER_UNMUTE               : event = "MEDIA_PLAYER_UNMUTE";                 break;
     case BTRMGR_EVENT_DEVICE_MEDIA_STATUS               : event = "DEVICE_MEDIA_STATUS";                 break;
+    case BTRMGR_EVENT_DEVICE_UNSUPPORTED                : event = "DEVICE_UNSUPPORTED";                  break;
     default                                             : event = "##INVALID##";
   }
   return event;
@@ -630,6 +631,7 @@ BTRMGR_Result_t eventCallback (BTRMGR_EventMessage_t event)
         gDeviceHandle = event.m_externalDevice.m_deviceHandle;
         break;
 #endif
+    case BTRMGR_EVENT_DEVICE_UNSUPPORTED:
     case BTRMGR_EVENT_DEVICE_PAIRING_COMPLETE:
     case BTRMGR_EVENT_DEVICE_PAIRING_FAILED:
         printf("\tReceived %s %s Event from BTRMgr\n", event.m_discoveredDevice.m_name, getEventAsString(event.m_eventType));
