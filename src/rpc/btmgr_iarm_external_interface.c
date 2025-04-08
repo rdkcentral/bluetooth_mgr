@@ -24,6 +24,7 @@
 #include "btmgr.h"
 #include "btrMgr_logger.h"
 #include "btmgr_iarm_interface.h"
+#include "power_controller.h"
 
 #include "safec_lib.h"
 
@@ -220,6 +221,10 @@ BTRMGR_DeInit (
 
         isBTRMGR_Inited = 0;
         BTRMGRLOG_INFO ("IARM Interface termination Successfully \n");
+        
+        BTRMGRLOG_ERROR ("Preethi: PoweController_Term started\n");
+        PowerController_Term();
+        BTRMGRLOG_ERROR ("Preethi: PoweController_Term completed\n");
     }
     else {
         rc = BTRMGR_RESULT_GENERIC_FAILURE;
