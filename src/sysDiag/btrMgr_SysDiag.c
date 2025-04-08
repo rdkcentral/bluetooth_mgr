@@ -620,15 +620,15 @@ BTRMGR_SD_GetData (
             snprintf(aData, (BTRMGR_STR_LEN_MAX - 1), "%s", BTRMGR_SYS_DIAG_PWRST_UNKNOWN);
             if (res == POWER_CONTROLLER_ERROR_NONE) {
 
-                if (param.curState == POWER_STATE_ON)
+                if (curState == POWER_STATE_ON)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_ON);
-                else if (param.curState == POWER_STATE_STANDBY)
+                else if (curState == POWER_STATE_STANDBY)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STANDBY);
-                else if (param.curState == POWER_STATE_STANDBY_LIGHT_SLEEP)
+                else if (curState == POWER_STATE_STANDBY_LIGHT_SLEEP)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP);
-                else if (param.curState == POWER_STATE_STANDBY_DEEP_SLEEP)
+                else if (curState == POWER_STATE_STANDBY_DEEP_SLEEP)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_DEEP_SLEEP);
-                else if (param.curState == POWER_STATE_OFF)
+                else if (curState == POWER_STATE_OFF)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_OFF);
                 
 
@@ -803,7 +803,6 @@ btrMgr_SysDiag_powerModeChangeCb (
     const PowerController_PowerState_t newState,
     void *userData
 ) {
-            IARM_Bus_PWRMgr_EventData_t *param = (IARM_Bus_PWRMgr_EventData_t *)data;
             BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: new State: %d\n", newState);
 
             if (gpstSDHandle != NULL) {
