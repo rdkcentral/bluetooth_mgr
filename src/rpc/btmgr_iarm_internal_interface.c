@@ -24,6 +24,7 @@
 #include "btrMgr_logger.h"
 #include "btmgr_iarm_interface.h"
 #include "btrMgr_IarmInternalIfce.h"
+#include "power_controller.h"
 
 #include "safec_lib.h"
 
@@ -2233,6 +2234,7 @@ BTRMgr_TermIARMMode (
         BTRMGRLOG_INFO ("IARM Interface Being terminated\n");
         IARM_Bus_Disconnect();
         IARM_Bus_Term();
+	PowerController_Term();
     }
     else {
         BTRMGRLOG_INFO ("IARM Interface Not Inited\n");
