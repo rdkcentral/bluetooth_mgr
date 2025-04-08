@@ -38,7 +38,7 @@
 #include "libIBus.h"
 #include "libIARM.h"
 #include "sysMgr.h"
-#include "pwrMgr.h"
+#include "power_controller.h"
 #endif
 
 #ifdef BTR_SYS_DIAG_RBUS_ENABLE
@@ -73,7 +73,7 @@ extern rbusHandle_t    rbusHandle;
 
 typedef struct _stBTRMgrSDHdl {
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
-    IARM_Bus_PWRMgr_PowerState_t    _powerState;
+    PowerController_PowerState_t    _powerState;
 #endif
     stBTRMgrSysDiagStatus           lstBtrMgrSysDiagStat;
     fPtr_BTRMgr_SD_StatusCb         fpcBSdStatus;
@@ -98,7 +98,10 @@ STATIC int btrMgr_SysDiag_getDiagInfoFromPipe(char* aCmd, char* aData);
 
 /* Incoming Callbacks Prototypes */
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
-STATIC void btrMgr_SysDiag_powerModeChangeCb (const char *owner, IARM_EventId_t eventId, void *data, size_t len); 
+STATIC void btrMgr_SysDiag_powerModeChangeCb (
+                const PowerController_PowerState_t currentState,
+                const PowerController_PowerState_t newState,
+                void *userData);
 #endif
 
 /* STATIC Function Definitions */
@@ -223,7 +226,7 @@ BTRMgr_SD_Init (
     MEMSET_S(sDHandle, sizeof(stBTRMgrSDHdl), 0, sizeof(stBTRMgrSDHdl));
     sDHandle->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_UNKNOWN;
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
-    sDHandle->_powerState = IARM_BUS_PWRMGR_POWERSTATE_OFF;
+    sDHandle->_powerState = POWER_STATE_OFF;
 #endif
     sDHandle->fpcBSdStatus= afpcBSdStatus;
     sDHandle->pvcBUserData= apvUserData;
@@ -610,39 +613,49 @@ BTRMGR_SD_GetData (
         break;
         case BTRMGR_SYS_DIAG_POWERSTATE: {
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
-            IARM_Bus_PWRMgr_GetPowerState_Param_t param;
-            IARM_Result_t res = IARM_Bus_Call(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_API_GetPowerState,
-                    (void *)&param, sizeof(param));
+            int res = -1;
+	    PowerController_PowerState_t curState = POWER_STATE_UNKNOWN, previousState = POWER_STATE_UNKNOWN;
+	    res = PowerController_GetPowerState(&curState, &previousState);
 
             snprintf(aData, (BTRMGR_STR_LEN_MAX - 1), "%s", BTRMGR_SYS_DIAG_PWRST_UNKNOWN);
-            if (res == IARM_RESULT_SUCCESS) {
+            if (res == POWER_CONTROLLER_ERROR_NONE) {
 
-                if (param.curState == IARM_BUS_PWRMGR_POWERSTATE_ON)
+                if (param.curState == POWER_STATE_ON)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_ON);
-                else if (param.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY)
+                else if (param.curState == POWER_STATE_STANDBY)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STANDBY);
-                else if (param.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)
+                else if (param.curState == POWER_STATE_STANDBY_LIGHT_SLEEP)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP);
-                else if (param.curState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP)
+                else if (param.curState == POWER_STATE_STANDBY_DEEP_SLEEP)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_DEEP_SLEEP);
-                else if (param.curState == IARM_BUS_PWRMGR_POWERSTATE_OFF)
+                else if (param.curState == POWER_STATE_OFF)
                     snprintf(aData, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_OFF);
                 
 
                 pstBtrMgrSdHdl->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_POWERSTATE;
                 strncpy(pstBtrMgrSdHdl->lstBtrMgrSysDiagStat.pcSysDiagRes, aData, BTRMGR_STR_LEN_MAX - 1);
-                pstBtrMgrSdHdl->_powerState = param.curState;
-
-                if (param.curState != IARM_BUS_PWRMGR_POWERSTATE_ON) {
-                    BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE PWRMGR :%d - %s\n", param.curState, aData);
-                    IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, btrMgr_SysDiag_powerModeChangeCb);
+                pstBtrMgrSdHdl->_powerState = curState;
+		    
+                if (curState != POWER_STATE_ON) {
+                    BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE PWRMGR :%d - %s\n", curState, aData);
+		    BTRMGRLOG_ERROR("Preethi: PowerInit started\n");
+                    PowerController_Init();
+		    BTRMGRLOG_ERROR("Preethi: PowerInit ended\n");
+		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback started\n");
+		    PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
+		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback ended\n");
                 }
             }
             else {
                 BTRMGRLOG_DEBUG("BTRMGR_SYS_DIAG_POWERSTATE Failure : Return code is %d\n", res);
                 /* In case of Failure to call GetPowerState registet the event handler anyway */
-                IARM_Bus_RegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED, btrMgr_SysDiag_powerModeChangeCb);
-                rc = eBTRMgrFailure;
+		    BTRMGRLOG_ERROR("Preethi: PowerInit started in else\n");
+                    PowerController_Init();
+		    BTRMGRLOG_ERROR("Preethi: PowerInit ended in else\n");
+		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback started in else\n");
+		    PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
+		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback ended in else\n");
+		    rc = eBTRMgrFailure;
             }
 #else
             rc = eBTRMgrFailure;
@@ -786,28 +799,24 @@ BTRMGR_SD_Check_Cellularmanager_ISOnline (
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
 STATIC void
 btrMgr_SysDiag_powerModeChangeCb (
-    const char *owner,
-    IARM_EventId_t eventId,
-    void *data,
-    size_t len
+    const PowerController_PowerState_t currentState,
+    const PowerController_PowerState_t newState,
+    void *userData
 ) {
-    if (strcmp(owner, IARM_BUS_PWRMGR_NAME)  == 0) {
-        switch (eventId) {
-        case IARM_BUS_PWRMGR_EVENT_MODECHANGED: {
             IARM_Bus_PWRMgr_EventData_t *param = (IARM_Bus_PWRMgr_EventData_t *)data;
-            BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: new State: %d\n", param->data.state.newState);
+            BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: new State: %d\n", newState);
 
             if (gpstSDHandle != NULL) {
 
-                if (param->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_ON)
+                if (newState == IARM_BUS_PWRMGR_POWERSTATE_ON)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_ON);
-                else if (param->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY)
+                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STANDBY);
-                else if (param->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)
+                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP);
-                else if (param->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP)
+                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_DEEP_SLEEP);
-                else if (param->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_OFF)
+                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_OFF)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_OFF);
                 else
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_UNKNOWN);
@@ -815,11 +824,11 @@ btrMgr_SysDiag_powerModeChangeCb (
                 gpstSDHandle->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_POWERSTATE;
 
 
-                if (gpstSDHandle->_powerState != param->data.state.newState && (param->data.state.newState != IARM_BUS_PWRMGR_POWERSTATE_ON && param->data.state.newState != IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)) {
+                if (gpstSDHandle->_powerState != newState && (newState != POWER_STATE_ON && newState != POWER_STATE_STANDBY_LIGHT_SLEEP)) {
                     BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device is being suspended\n");
                 }
 
-                if (gpstSDHandle->_powerState != param->data.state.newState && param->data.state.newState == IARM_BUS_PWRMGR_POWERSTATE_ON) {
+                if (gpstSDHandle->_powerState != param->data.state.newState && param->data.state.newState == POWER_STATE_ON) {
                     BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device just woke up\n");
                     if (gpstSDHandle->fpcBSdStatus) {
                         stBTRMgrSysDiagStatus   lstBtrMgrSysDiagStat;
@@ -832,13 +841,7 @@ btrMgr_SysDiag_powerModeChangeCb (
                     }
                 }
 
-                gpstSDHandle->_powerState = param->data.state.newState;
+                gpstSDHandle->_powerState = newState;
             }
-        }
-            break;
-        default:
-            break;
-        }
-    }
 }
 #endif /* #ifdef BTR_SYS_DIAG_IARM_ENABLE */
