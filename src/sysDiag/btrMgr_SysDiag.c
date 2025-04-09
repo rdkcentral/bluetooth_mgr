@@ -803,7 +803,7 @@ btrMgr_SysDiag_powerModeChangeCb (
     const PowerController_PowerState_t newState,
     void *userData
 ) {
-            BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: new State: %d\n", newState);
+            BTRMGRLOG_ERROR("BTRMGR_SYS_DIAG_POWERSTATE Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: new State: %d\n", newState);
 
             if (gpstSDHandle != NULL) {
 
