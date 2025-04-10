@@ -612,6 +612,7 @@ BTRMGR_SD_GetData (
         }
         break;
         case BTRMGR_SYS_DIAG_POWERSTATE: {
+	    BTRMGRLOG_WARN("I am from sysdiag: Preethi\n", curState, aData);
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
             int res = -1;
 	    PowerController_PowerState_t curState = POWER_STATE_UNKNOWN, previousState = POWER_STATE_UNKNOWN;
