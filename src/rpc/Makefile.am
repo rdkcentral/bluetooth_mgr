@@ -18,7 +18,7 @@
 ##########################################################################
 SUBDIRS =
 if USE_RPC_IARM
-AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include -I${top_srcdir}/include/logger -I${top_srcdir}/include/rpc ${RPC_FLAGS} -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
+AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include -I${top_srcdir}/include/logger -I${top_srcdir}/include/rpc ${RPC_FLAGS} -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/WPEFramework/powercontroller -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
 AM_LDFLAGS = -ldbus-1  -lIARMBus -lrdkloggers $(SAFEC_LFLAGS)
 
 libBTMgr_la_SOURCES = btmgr_iarm_external_interface.c
@@ -26,16 +26,16 @@ include_HEADERS = ${top_srcdir}/include/rpc/btmgr_iarm_interface.h
 endif
 
 if USE_RPC_RBUS
-AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include -I${top_srcdir}/include/logger -I${top_srcdir}/include/rpc -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/rbus -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
+AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include -I${top_srcdir}/include/logger -I${top_srcdir}/include/rpc -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/rbus -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/WPEFramework/powercontroller -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
 if LE_ONLY
 AM_CPPFLAGS += -I$(top_srcdir)/soc/include
 endif
-AM_LDFLAGS = -ldbus-1  -lrbus -lrdkloggers  $(SAFEC_LFLAGS)
+AM_LDFLAGS = -ldbus-1  -lrbus -lrdkloggers -lWPEFrameworkPowerController $(SAFEC_LFLAGS)
 
 libBTMgr_la_SOURCES = btmgr_rbus_external_interface.c
 include_HEADERS = ${top_srcdir}/include/rpc/btmgr_rbus_interface.h
 endif
 
 lib_LTLIBRARIES = libBTMgr.la
-libBTMgr_la_includedir = $(includedir)
+libBTMgr_la_includedir = $(includedir) -lWPEFrameworkPowerController
 libBTMgr_la_include_HEADERS = ${top_srcdir}/include/btmgr.h
