@@ -612,7 +612,7 @@ BTRMGR_SD_GetData (
         }
         break;
         case BTRMGR_SYS_DIAG_POWERSTATE: {
-	    BTRMGRLOG_WARN("I am from sysdiag: Preethi\n", curState, aData);
+	    BTRMGRLOG_WARN("I am from sysdiag: Preethi\n");
 #ifdef BTR_SYS_DIAG_IARM_ENABLE
             int res = -1;
 	    PowerController_PowerState_t curState = POWER_STATE_UNKNOWN, previousState = POWER_STATE_UNKNOWN;
@@ -808,15 +808,15 @@ btrMgr_SysDiag_powerModeChangeCb (
 
             if (gpstSDHandle != NULL) {
 
-                if (newState == IARM_BUS_PWRMGR_POWERSTATE_ON)
+                if (newState == POWER_STATE_ON)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_ON);
-                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY)
+                else if (newState == POWER_STATE_STANDBY)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STANDBY);
-                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_LIGHT_SLEEP)
+                else if (newState == POWER_STATE_STANDBY_LIGHT_SLEEP)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP);
-                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_STANDBY_DEEP_SLEEP)
+                else if (newState == POWER_STATE_STANDBY_DEEP_SLEEP)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_STDBY_DEEP_SLEEP);
-                else if (newState == IARM_BUS_PWRMGR_POWERSTATE_OFF)
+                else if (newState == POWER_STATE_OFF)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_OFF);
                 else
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_UNKNOWN);
@@ -828,7 +828,7 @@ btrMgr_SysDiag_powerModeChangeCb (
                     BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device is being suspended\n");
                 }
 
-                if (gpstSDHandle->_powerState != param->data.state.newState && param->data.state.newState == POWER_STATE_ON) {
+                if (gpstSDHandle->_powerState != newState && newState == POWER_STATE_ON) {
                     BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device just woke up\n");
                     if (gpstSDHandle->fpcBSdStatus) {
                         stBTRMgrSysDiagStatus   lstBtrMgrSysDiagStat;
