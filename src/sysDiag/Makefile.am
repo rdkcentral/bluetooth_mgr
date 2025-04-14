@@ -20,7 +20,7 @@ SUBDIRS =
 
 INCLUDE_FILES =
 
-AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include/common -I${top_srcdir}/include/sysDiag -I${top_srcdir}/include/logger -I${top_srcdir}/include/commonutilities -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
+AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include/common -I${top_srcdir}/include/sysDiag -I${top_srcdir}/include/logger -I${top_srcdir}/include/commonutilities -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/WPEFramework/powercontroller -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
 AM_LDFLAGS = $(RDKLOGGER_LIBS) $(SAFEC_LFLAGS)
 
 if USE_SYS_DIAG
