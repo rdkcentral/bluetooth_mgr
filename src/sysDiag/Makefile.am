@@ -38,6 +38,6 @@ endif
 
 lib_LTLIBRARIES = libbtrMgrSysDiag.la
 libbtrMgrSysDiag_la_SOURCES = btrMgr_SysDiag.c btrMgr_DeviceUtils.c
-libbtrMgrSysDiag_la_CFLAGS = $(INCLUDE_FILES) 
+libbtrMgrSysDiag_la_CFLAGS = $(INCLUDE_FILES) -lWPEFrameworkPowerController
 
 include_HEADERS = $(top_srcdir)/include/sysDiag/btrMgr_SysDiag.h $(top_srcdir)/include/sysDiag/btrMgr_DeviceUtils.h
