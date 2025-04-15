@@ -19,7 +19,7 @@
 SUBDIRS =
 if USE_RPC_IARM
 AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include -I${top_srcdir}/include/logger -I${top_srcdir}/include/rpc ${RPC_FLAGS} -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/rdk/iarmbus -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/WPEFramework/powercontroller -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
-AM_LDFLAGS = -ldbus-1  -lIARMBus -lrdkloggers $(SAFEC_LFLAGS)
+AM_LDFLAGS = -ldbus-1  -lIARMBus -lrdkloggers -lWPEFrameworkPowerController $(SAFEC_LFLAGS)
 
 libBTMgr_la_SOURCES = btmgr_iarm_external_interface.c
 include_HEADERS = ${top_srcdir}/include/rpc/btmgr_iarm_interface.h
