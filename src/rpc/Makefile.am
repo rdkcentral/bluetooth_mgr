@@ -37,5 +37,5 @@ include_HEADERS = ${top_srcdir}/include/rpc/btmgr_rbus_interface.h
 endif
 
 lib_LTLIBRARIES = libBTMgr.la
-libBTMgr_la_includedir = $(includedir) -lWPEFrameworkPowerController
+libBTMgr_la_includedir = $(includedir)
 libBTMgr_la_include_HEADERS = ${top_srcdir}/include/btmgr.h
