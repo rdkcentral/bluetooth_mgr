@@ -321,7 +321,7 @@ btrMgr_IsAdapterDiscoverable (
     BTRMGRLOG_INFO ("Entering\n");
 
     if (!gIsBTRMGR_Internal_Inited) {
-        retCode = IARM_RESULT_INVALID_STATE;
+        retCode = IARM_RESULT_INVALID_STATE
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
