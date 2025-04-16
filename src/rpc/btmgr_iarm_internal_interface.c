@@ -25,7 +25,6 @@
 #include "btmgr_iarm_interface.h"
 #include "btrMgr_IarmInternalIfce.h"
 #include "power_controller.h"
-errorInjection
 #include "safec_lib.h"
 
 #ifndef UNIT_TEST
