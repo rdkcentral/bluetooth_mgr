@@ -2234,7 +2234,7 @@ BTRMgr_TermIARMMode (
         IARM_Bus_Disconnect();
         IARM_Bus_Term();
 	BTRMGRLOG_ERROR ("Preethi: PoweController_Term started in internal\n");
-	PowerController_Term();
+	PowerController_Term()
 	BTRMGRLOG_ERROR ("Preethi: PoweController_Term ended in internal\n");
     }
     else {
