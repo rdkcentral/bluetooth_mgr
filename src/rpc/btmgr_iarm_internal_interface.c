@@ -24,7 +24,11 @@
 #include "btrMgr_logger.h"
 #include "btmgr_iarm_interface.h"
 #include "btrMgr_IarmInternalIfce.h"
+
+#ifndef BUILD_FOR_PI
 #include "power_controller.h"
+#endif
+
 #include "safec_lib.h"
 
 #ifndef UNIT_TEST
@@ -2233,9 +2237,12 @@ BTRMgr_TermIARMMode (
         BTRMGRLOG_INFO ("IARM Interface Being terminated\n");
         IARM_Bus_Disconnect();
         IARM_Bus_Term();
-	BTRMGRLOG_ERROR ("Preethi: PoweController_Term started in internal\n");
+
+#ifndef BUILD_FOR_PI
+	BTRMGRLOG_INFO("PowerController_Term started in internal\n");
 	PowerController_Term();
-	BTRMGRLOG_ERROR ("Preethi: PoweController_Term ended in internal\n");
+	BTRMGRLOG_INFO("PowerController_Term ended in internal\n");
+#endif
     }
     else {
         BTRMGRLOG_INFO ("IARM Interface Not Inited\n");

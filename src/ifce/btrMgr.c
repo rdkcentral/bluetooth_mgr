@@ -5960,17 +5960,21 @@ BTRMGR_StartAudioStreamingOut_StartUp (
 
         for (i32ProfileIdx = 0; i32ProfileIdx < numOfProfiles; i32ProfileIdx++) {
             deviceCount = lstPersistentData.profileList[i32ProfileIdx].numOfDevices;
+	    BTRMGRLOG_INFO("i32ProfileIdx = %d, deviceCount = %d\n", i32ProfileIdx, deviceCount);
 
             for (i32DeviceIdx = 0; i32DeviceIdx < deviceCount ; i32DeviceIdx++) {
                 lDeviceHandle   = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].deviceId;
                 isConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].isConnected;
                 lastConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].lastConnected;
+		BTRMGRLOG_INFO("lDeviceHandle = %llu, isConnected = %d, lastConnected = %d\n", lDeviceHandle, isConnected, lastConnected);
 
                 if ((lastConnected || isConnected) && lDeviceHandle) {
+		    BTRMGRLOG_INFO("profileId: %s\n", lstPersistentData.profileList[i32ProfileIdx].profileId);
                     if(strcmp(lstPersistentData.profileList[i32ProfileIdx].profileId, BTRMGR_A2DP_SINK_PROFILE_ID) == 0) {
                         char                   lPropValue[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
                         BTRMGR_SysDiagChar_t   lenDiagElement = BTRMGR_SYS_DIAG_POWERSTATE;
 
+			BTRMGRLOG_INFO("BTRMGR_SD_GetData is going to get called with PowerState\n");
                         if (eBTRMgrSuccess != BTRMGR_SD_GetData(ghBTRMgrSdHdl, lenDiagElement, lPropValue)) {
                             gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
                             BTRMGRLOG_ERROR("Could not get diagnostic data\n");

@@ -38,6 +38,9 @@
 #include "libIBus.h"
 #include "libIARM.h"
 #include "sysMgr.h"
+#endif
+
+#ifndef BUILD_FOR_PI
 #include "power_controller.h"
 #endif
 
@@ -72,7 +75,7 @@ extern rbusHandle_t    rbusHandle;
 #endif
 
 typedef struct _stBTRMgrSDHdl {
-#ifdef BTR_SYS_DIAG_IARM_ENABLE
+#ifndef BUILD_FOR_PI
     PowerController_PowerState_t    _powerState;
 #endif
     stBTRMgrSysDiagStatus           lstBtrMgrSysDiagStat;
@@ -96,8 +99,8 @@ STATIC int btrMgr_SysDiag_getDiagInfoFromFile(char* aFileName, char* aData);
 #endif
 STATIC int btrMgr_SysDiag_getDiagInfoFromPipe(char* aCmd, char* aData);
 
+#ifndef BUILD_FOR_PI
 /* Incoming Callbacks Prototypes */
-#ifdef BTR_SYS_DIAG_IARM_ENABLE
 STATIC void btrMgr_SysDiag_powerModeChangeCb (
                 const PowerController_PowerState_t currentState,
                 const PowerController_PowerState_t newState,
@@ -225,7 +228,7 @@ BTRMgr_SD_Init (
 
     MEMSET_S(sDHandle, sizeof(stBTRMgrSDHdl), 0, sizeof(stBTRMgrSDHdl));
     sDHandle->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_UNKNOWN;
-#ifdef BTR_SYS_DIAG_IARM_ENABLE
+#ifndef BUILD_FOR_PI
     sDHandle->_powerState = POWER_STATE_OFF;
 #endif
     sDHandle->fpcBSdStatus= afpcBSdStatus;
@@ -612,10 +615,12 @@ BTRMGR_SD_GetData (
         }
         break;
         case BTRMGR_SYS_DIAG_POWERSTATE: {
-	    BTRMGRLOG_WARN("I am from sysdiag: Preethi\n");
-#ifdef BTR_SYS_DIAG_IARM_ENABLE
+#ifndef BUILD_FOR_PI
             int res = -1;
 	    PowerController_PowerState_t curState = POWER_STATE_UNKNOWN, previousState = POWER_STATE_UNKNOWN;
+	    BTRMGRLOG_INFO("PowerInit started\n");
+	    PowerController_Init();
+	    BTRMGRLOG_INFO("PowerInit ended\n");
 	    res = PowerController_GetPowerState(&curState, &previousState);
 
             snprintf(aData, (BTRMGR_STR_LEN_MAX - 1), "%s", BTRMGR_SYS_DIAG_PWRST_UNKNOWN);
@@ -639,27 +644,17 @@ BTRMGR_SD_GetData (
 		    
                 if (curState != POWER_STATE_ON) {
                     BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE PWRMGR :%d - %s\n", curState, aData);
-		    BTRMGRLOG_ERROR("Preethi: PowerInit started\n");
-                    PowerController_Init();
-		    BTRMGRLOG_ERROR("Preethi: PowerInit ended\n");
-		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback started\n");
 		    PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
-		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback ended\n");
                 }
             }
             else {
-                BTRMGRLOG_DEBUG("BTRMGR_SYS_DIAG_POWERSTATE Failure : Return code is %d\n", res);
-                /* In case of Failure to call GetPowerState registet the event handler anyway */
-		    BTRMGRLOG_ERROR("Preethi: PowerInit started in else\n");
-                    PowerController_Init();
-		    BTRMGRLOG_ERROR("Preethi: PowerInit ended in else\n");
-		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback started in else\n");
+		    BTRMGRLOG_ERROR("BTRMGR_SYS_DIAG_POWERSTATE Failure : Return code is %d\n", res);
+		    /* In case of Failure to call GetPowerState registet the event handler anyway */
 		    PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
-		    BTRMGRLOG_ERROR("Preethi: PowerController_RegisterPowerModeChangedCallback ended in else\n");
 		    rc = eBTRMgrFailure;
             }
 #else
-            rc = eBTRMgrFailure;
+	    rc = eBTRMgrFailure;
 #endif
         }
         break;
@@ -796,17 +791,19 @@ BTRMGR_SD_Check_Cellularmanager_ISOnline (
 }
 #endif
 
+#ifndef BUILD_FOR_PI
 /*  Incoming Callbacks */
-#ifdef BTR_SYS_DIAG_IARM_ENABLE
 STATIC void
 btrMgr_SysDiag_powerModeChangeCb (
     const PowerController_PowerState_t currentState,
     const PowerController_PowerState_t newState,
     void *userData
 ) {
-            BTRMGRLOG_ERROR("BTRMGR_SYS_DIAG_POWERSTATE Event IARM_BUS_PWRMGR_EVENT_MODECHANGED: new State: %d\n", newState);
+            BTRMGRLOG_WARN("new State: %d\n", newState);
 
             if (gpstSDHandle != NULL) {
+
+		BTRMGRLOG_INFO("gpstSDHandle is not NULL\n");
 
                 if (newState == POWER_STATE_ON)
                     snprintf(gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes, BTRMGR_STR_LEN_MAX - 1, "%s", BTRMGR_SYS_DIAG_PWRST_ON);
@@ -844,4 +841,4 @@ btrMgr_SysDiag_powerModeChangeCb (
                 gpstSDHandle->_powerState = newState;
             }
 }
-#endif /* #ifdef BTR_SYS_DIAG_IARM_ENABLE */
+#endif
