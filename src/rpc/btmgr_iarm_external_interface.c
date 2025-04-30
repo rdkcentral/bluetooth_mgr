@@ -25,6 +25,10 @@
 #include "btrMgr_logger.h"
 #include "btmgr_iarm_interface.h"
 
+#ifndef BUILD_FOR_PI
+#include "power_controller.h"
+#endif
+
 #include "safec_lib.h"
 
 static unsigned char isBTRMGR_Inited = 0;
@@ -220,6 +224,15 @@ BTRMGR_DeInit (
 
         isBTRMGR_Inited = 0;
         BTRMGRLOG_INFO ("IARM Interface termination Successfully \n");
+        
+#ifndef BUILD_FOR_PI
+	/* When btmgr is initialized and need to de-init, call
+	 * PowerController_Term too.
+	 */
+        BTRMGRLOG_INFO("PowerController_Term started\n");
+        PowerController_Term();
+        BTRMGRLOG_INFO("PoweController_Term completed\n");
+#endif
     }
     else {
         rc = BTRMGR_RESULT_GENERIC_FAILURE;

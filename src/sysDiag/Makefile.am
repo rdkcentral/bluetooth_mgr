@@ -20,7 +20,7 @@ SUBDIRS =
 
 INCLUDE_FILES =
 
-AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include/common -I${top_srcdir}/include/sysDiag -I${top_srcdir}/include/logger -I${top_srcdir}/include/commonutilities -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
+AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include/common -I${top_srcdir}/include/sysDiag -I${top_srcdir}/include/logger -I${top_srcdir}/include/commonutilities -I$(PKG_CONFIG_SYSROOT_DIR)${includedir}/WPEFramework/powercontroller -I${top_srcdir}/include/safec $(SAFEC_CFLAGS)
 AM_LDFLAGS = $(RDKLOGGER_LIBS) $(SAFEC_LFLAGS)
 
 if USE_SYS_DIAG
@@ -36,8 +36,14 @@ AM_LDFLAGS += -lrbus -lsyscfg
 AM_CPPFLAGS += -DBTR_SYS_DIAG_RBUS_ENABLE=1
 endif
 
+if WITH_PI_BUILD
+AM_CPPFLAGS += $(PI_BUILD_FLAG)
+else
+AM_LDFLAGS += -lWPEFrameworkPowerController
+endif
+
 lib_LTLIBRARIES = libbtrMgrSysDiag.la
 libbtrMgrSysDiag_la_SOURCES = btrMgr_SysDiag.c btrMgr_DeviceUtils.c
-libbtrMgrSysDiag_la_CFLAGS = $(INCLUDE_FILES) 
+libbtrMgrSysDiag_la_CFLAGS = $(INCLUDE_FILES)
 
 include_HEADERS = $(top_srcdir)/include/sysDiag/btrMgr_SysDiag.h $(top_srcdir)/include/sysDiag/btrMgr_DeviceUtils.h
