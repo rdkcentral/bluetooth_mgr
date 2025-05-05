@@ -9176,8 +9176,11 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
         usleep(500000);
     } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
     if (gEventRespReceived == 0) {
-        BTRMGRLOG_INFO("External connection response not received from UI for LE HID device, So rejecting the incoming connection\n");
+        BTRMGRLOG_INFO("External connection response not received from UI for LE HID device, So disconnecting the device.\n");
         *auth = 0;
+        if (BTRCore_DisconnectDevice(ghBTRCoreHdl, p_StatusCB->deviceId, enBTRCoreHID) == enBTRCoreSuccess) {
+             BTRMGRLOG_INFO("Disconnected an LE HID device successfully\n");
+        }
     } else {
         *auth = gAcceptConnection;
         if (gAcceptConnection) {
