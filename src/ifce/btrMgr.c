@@ -2851,8 +2851,13 @@ btrMgr_ConnectToDevice (
                     }
                 }
 
-                if (BTRCore_DisconnectDevice (ghBTRCoreHdl, ahBTRMgrDevHdl, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
-                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                /* Skipped disconnecting the HID device. During connection failure, LE gamepads are removed from the kernel auto-connect list,
+                * preventing auto-connection.
+                */
+                if (lenBTRCoreDeviceType != enBTRCoreHID) {
+                    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, ahBTRMgrDevHdl, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
+                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                    }
                 }
             }
             else {
