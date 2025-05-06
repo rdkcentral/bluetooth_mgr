@@ -1814,6 +1814,7 @@ BTRMGR_TEST_STATUS testConnectTimeout()
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("Connect", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_CONNECTION_FAILED, NULL, LONG_WAIT)); //No connection failed event
     BTRMGR_GetConnectedDevices(0, &connectedDev);
+    connectedDev.m_numOfDevices = 0;
     EXPECT_TRUE(CHECK_CONNECTED_DEVICES_AGAINST_MOCK_DEVICES(NULL, 0, connectedDev.m_deviceProperty, connectedDev.m_numOfDevices));
     return BTRMGR_TEST_SUCCESS;
 }
@@ -1829,6 +1830,7 @@ BTRMGR_TEST_STATUS testConnectFailed()
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("Connect", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_CONNECTION_FAILED, NULL, LONG_WAIT));
     BTRMGR_GetConnectedDevices(0, &connectedDev);
+    connectedDev.m_numOfDevices = 0;
     EXPECT_TRUE(CHECK_CONNECTED_DEVICES_AGAINST_MOCK_DEVICES(NULL, 0, connectedDev.m_deviceProperty, connectedDev.m_numOfDevices));
     return BTRMGR_TEST_SUCCESS;
 }

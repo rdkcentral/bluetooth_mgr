@@ -336,6 +336,9 @@ enBTRCoreRet _mock_BTRCore_PairDevice_Success(tBTRCoreHandle hBTRCore, BTRMgrDev
 
 enBTRCoreRet _mock_BTRCore_GetListOfPairedDevices_Success(tBTRCoreHandle hBTRCore, stBTRCorePairedDevicesCount *pListOfDevices, int cmock_num_calls)
 {
+    if (pListOfDevices == NULL) {
+        return enBTRCoreFailure;
+    }
     pListOfDevices->numberOfDevices = 1;
     pListOfDevices->devices[0].tDeviceId = 12345; // Assuming tDeviceId is the correct member name for the device handle
     strcpy(pListOfDevices->devices[0].pcDeviceName, "Test Device");
@@ -6141,6 +6144,7 @@ void test_successful_connection_acceptance(void) {
     int auth = 0;
     gEventRespReceived = 1;
     gAcceptConnection = 1;
+
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     btrMgr_IncomingConnectionAuthentication(&statusCB, &auth);
 
@@ -6152,8 +6156,11 @@ void test_connection_rejection_by_ui(void) {
     int auth = 0;
     gEventRespReceived = 1;
     gAcceptConnection = 0;
+    tBTRCoreDevId expectedDevId = 1;
+    enBTRCoreDeviceType expectedDevType = enBTRCoreHID;
+
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
-    BTRCore_DisconnectDevice_StubWithCallback(_mock_BTRCore_DisconnectDevice_Success);
+    BTRCore_DisconnectDevice_ExpectAndReturn(ghBTRCoreHdl, expectedDevId, expectedDevType, enBTRCoreSuccess);
     btrMgr_IncomingConnectionAuthentication(&statusCB, &auth);
 
     TEST_ASSERT_EQUAL(0, auth);
@@ -6162,9 +6169,13 @@ void test_connection_rejection_by_ui(void) {
 void test_no_response_from_ui(void) {
     stBTRCoreDevStatusCBInfo statusCB = {1, "Device1", "00:11:22:33:44:55", 1};
     int auth = 0;
+    tBTRCoreDevId expectedDevId = 1;
+    enBTRCoreDeviceType expectedDevType = enBTRCoreHID;
+
     gEventRespReceived = 0;
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     BTRCore_GetDeviceTypeClass_StubWithCallback(_mock_BTRCore_GetDeviceTypeClass_Success);
+    BTRCore_DisconnectDevice_ExpectAndReturn(ghBTRCoreHdl, expectedDevId, expectedDevType, enBTRCoreSuccess);
     btrMgr_IncomingConnectionAuthentication(&statusCB, &auth);
 
     TEST_ASSERT_EQUAL(0, auth);
@@ -6173,8 +6184,13 @@ void test_no_response_from_ui(void) {
 void test_valid_device_information(void) {
     stBTRCoreDevStatusCBInfo statusCB = {1, "Device1", "00:11:22:33:44:55", 1};
     int auth = 0;
+    tBTRCoreDevId expectedDevId = 1;
+    enBTRCoreDeviceType expectedDevType = enBTRCoreHID;
+    stBTRCorePairedDevicesCount listOfDevices;
+    memset(&listOfDevices, 0, sizeof(listOfDevices));
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
 
+    BTRCore_DisconnectDevice_ExpectAndReturn(ghBTRCoreHdl, expectedDevId, expectedDevType, enBTRCoreSuccess);
     btrMgr_IncomingConnectionAuthentication(&statusCB, &auth);
 
     // Check if the event message is populated correctly
@@ -6183,17 +6199,20 @@ void test_valid_device_information(void) {
     TEST_ASSERT_EQUAL(0, auth);
 }
 
-
 void test_event_response_timeout(void) {
     stBTRCoreDevStatusCBInfo statusCB = {1, "Device1", "00:11:22:33:44:55", 1};
     int auth = 0;
     gEventRespReceived = 0;
-BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
+    tBTRCoreDevId expectedDevId = 1;
+    enBTRCoreDeviceType expectedDevType = enBTRCoreHID;
+    BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
 
+    BTRCore_DisconnectDevice_ExpectAndReturn(ghBTRCoreHdl, expectedDevId, expectedDevType, enBTRCoreSuccess);
     btrMgr_IncomingConnectionAuthentication(&statusCB, &auth);
 
     TEST_ASSERT_EQUAL(0, auth);
 }
+
 void test_BTRMGR_SysDiagInfo_InitFailure(void) {
     ghBTRCoreHdl = NULL; // Simulate uninitialized BTRCore handle
     char apValue[BTRMGR_MAX_STR_LEN] = {0};
