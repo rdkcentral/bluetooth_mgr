@@ -2851,8 +2851,13 @@ btrMgr_ConnectToDevice (
                     }
                 }
 
-                if (BTRCore_DisconnectDevice (ghBTRCoreHdl, ahBTRMgrDevHdl, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
-                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                /* Skipped disconnecting the HID device. During connection failure, LE gamepads are removed from the kernel auto-connect list,
+                * preventing auto-connection.
+                */
+                if (lenBTRCoreDeviceType != enBTRCoreHID) {
+                    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, ahBTRMgrDevHdl, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
+                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                    }
                 }
             }
             else {
@@ -9176,8 +9181,11 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
         usleep(500000);
     } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
     if (gEventRespReceived == 0) {
-        BTRMGRLOG_INFO("External connection response not received from UI for LE HID device, So rejecting the incoming connection\n");
+        BTRMGRLOG_INFO("External connection response not received from UI for LE HID device, So disconnecting the device.\n");
         *auth = 0;
+        if (BTRCore_DisconnectDevice(ghBTRCoreHdl, p_StatusCB->deviceId, enBTRCoreHID) == enBTRCoreSuccess) {
+             BTRMGRLOG_INFO("Disconnected an LE HID device successfully\n");
+        }
     } else {
         *auth = gAcceptConnection;
         if (gAcceptConnection) {
@@ -9370,6 +9378,7 @@ btrMgr_DeviceStatusCb (
                     }
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                              (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
+#ifdef AUTO_CONNECT_ENABLED
                         BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
                         if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                             (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState) &&
@@ -9379,6 +9388,7 @@ btrMgr_DeviceStatusCb (
                             if (!auth)
                                 break;
                         }
+#endif //AUTO_CONNECT_ENABLED
                         lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
                         btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
                         BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
@@ -10277,6 +10287,7 @@ btrMgr_ConnectionInAuthenticationCb (
                     gfpcBBTRMgrEventOut(lstEventMessage);     /* Post a callback */
                 }
 
+#ifdef AUTO_CONNECT_ENABLED
                 BTRMGRLOG_INFO ("Wating for the external connection response from UI for HID device\n");
                 {   /* Max 2 sec timeout - Polled at 50ms second interval */
                     unsigned int ui32sleepIdx = 40;
@@ -10297,16 +10308,19 @@ btrMgr_ConnectionInAuthenticationCb (
                             BTRMGRLOG_INFO ("Incoming Connection rejected for HID device based on the response from UI\n");
                         }
                     }
-
-                    /* Updating this flag here to allow posting the out of range event since the HID device
-                     * is getting autoconnected after disconnect when it has been powered ON.
-                     */
-                    if (*api32ConnInAuthResp == 1) {
-                        gIsUserInitiated = 0;
-                    }
-
-                    gEventRespReceived = 0;
                 }
+#else
+                *api32ConnInAuthResp = gAcceptConnection;
+#endif //AUTO_CONNECT_ENABLED
+
+                /* Updating this flag here to allow posting the out of range event since the HID device
+                 * is getting autoconnected after disconnect when it has been powered ON.
+                 */
+                 if (*api32ConnInAuthResp == 1) {
+                     gIsUserInitiated = 0;
+                 }
+
+                 gEventRespReceived = 0;
             } else {
                 BTRMGRLOG_INFO ("Pairing or Connection in progress, so accepting the incoming connection from external HID device ...\n");
                 *api32ConnInAuthResp = 1;
