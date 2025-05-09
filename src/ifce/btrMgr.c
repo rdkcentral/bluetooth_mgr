@@ -629,7 +629,7 @@ btrMgr_CheckBroadcastAvailability(
 
     if (status == WDMP_SUCCESS)
     {
-        BTRMGRLOG_DEBUG("name = %s, type = %d, value = %s\n", param.name, param.type, param.value);
+        BTRMGRLOG_DEBUG("name = %s, type = %d, value = %s\n", param.name, param.value);
 
         if (!strncmp(param.value, "true", strlen("true")))
         {
