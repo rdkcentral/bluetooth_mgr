@@ -8919,7 +8919,7 @@ static gboolean btrMgr_PostOutOfRangeHoldOffTimerCb(gpointer user_data)
     BTRMGR_EventMessage_t   lstEventMessage;
     stBTRCoreDevStatusCBInfo *cb_data = (stBTRCoreDevStatusCBInfo*)user_data;
     btrMgr_MapDevstatusInfoToEventInfo ((void *)cb_data, &lstEventMessage, BTRMGR_EVENT_DEVICE_OUT_OF_RANGE);
-    if (gEliteIncomCon != 1) {
+    if (gEliteIncomCon != 1 && (btrMgr_IsDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle) != 1)) {
         BTRMGRLOG_INFO("Generated out of range event for elite\n");
         if (gfpcBBTRMgrEventOut) {
             gfpcBBTRMgrEventOut(lstEventMessage);
