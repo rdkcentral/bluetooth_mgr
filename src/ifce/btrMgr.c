@@ -101,6 +101,7 @@
 #define BTMGR_FLUSH_TIMEOUT_INTERVAL_MS 100
 #define BTMGR_FLUSH_TIMEOUT_LARGE_MTU_INTERVAL_MS 255
 #define BTMGR_LARGE_MTU_THRESHOLD 800
+#define BTRMGR_REMOTE_CONTROL_APPEARANCE 0x0180
 #define BTMGR_PROCESS_NAME        "btMgrBus"
 #define RDK_LOGGER_BTMGR_NAME "LOG.RDK.BTRMGR"
 #define RDK_LOGGER_BTCORE_NAME "LOG.RDK.BTRCORE"
@@ -3968,6 +3969,28 @@ BTRMGR_Init (
     return lenBtrMgrResult;
 }
 
+static BOOLEAN btrMgr_IsDeviceRdkRcu(
+    BTRMGR_DeviceServiceList_t *DeviceServiceInfo,
+    unsigned short ui16Appearance
+) {
+    unsigned short Idx1;
+    if (ui16Appearance == BTRMGR_REMOTE_CONTROL_APPEARANCE) {
+        BTRMGRLOG_ERROR("Device appearance is remote control , skipping disconnect ...\n");
+        return TRUE;
+    }
+    if (DeviceServiceInfo == NULL) {
+        BTRMGRLOG_ERROR("No Service UUID's Present\n");
+        return FALSE;
+    }
+    for (Idx1 = 0; Idx1 < DeviceServiceInfo->m_numOfService; Idx1++) {
+        BTRMGRLOG_INFO("Profile - %s Appearance - %hu\n",DeviceServiceInfo->m_profileInfo[Idx1].m_profile,ui16Appearance);
+        if (!strncmp(DeviceServiceInfo->m_profileInfo[Idx1].m_profile, BTRMGR_REMOTE_DEVICE, BTRMGR_NAME_LEN_MAX - 1)) {
+            BTRMGRLOG_ERROR("Remote device UUID detected , skipping diconnect ...\n");
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
 
 BTRMGR_Result_t
 BTRMGR_DeInit (
@@ -3981,6 +4004,7 @@ BTRMGR_DeInit (
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
     unsigned int                    ui32sleepTimeOut = 1;
     isDeinitInProgress = TRUE;
+    gboolean isRemoteDev = FALSE;
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
@@ -4004,18 +4028,21 @@ BTRMGR_DeInit (
             enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
 
             BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
-            if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
-                BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
-            }
-
-            do {
-                unsigned int ui32sleepIdx = 2;
+            isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_serviceInfo,lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
+            if (!isRemoteDev) {
+                if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
+                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                }
 
                 do {
-                    sleep(ui32sleepTimeOut);
-                    lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
-                } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
-            } while (--ui32confirmIdx);
+                    unsigned int ui32sleepIdx = 2;
+
+                    do {
+                        sleep(ui32sleepTimeOut);
+                        lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
+                    } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
+                } while (--ui32confirmIdx);
+            }
         }
     }
 

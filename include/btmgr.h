@@ -66,6 +66,7 @@ extern "C"
 #define BTRMGR_DEVICE_INFORMATION_UUID      "0x180a"
 #define BTRMGR_RDKDIAGNOSTICS_UUID          "0xFDB9"
 #define BTRMGR_COLUMBO_UUID                 "64d9f574-7756-4ebc-9ebe-ed5f7f2871ab"
+#define BTRMGR_REMOTE_DEVICE                "Remote Device"
 
 #define BTRMGR_XBOX_ELITE_PRODUCT_ID         0x0B05
 #define BTRMGR_XBOX_ELITE_VENDOR_ID          0x045E
