@@ -73,7 +73,7 @@
 #define BTRMGR_SIGNAL_FAIR       (-70)
 #define BTRMGR_SIGNAL_GOOD       (-60)
 
-#define BTRMGR_MODALIAS_RETRY_ATTEMPTS      3
+#define BTRMGR_MODALIAS_RETRY_ATTEMPTS      5
 #define BTRMGR_CONNECT_RETRY_ATTEMPTS       2
 #define BTRMGR_PAIR_RETRY_ATTEMPTS          10
 #define BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS 3
@@ -4908,6 +4908,7 @@ BTRMGR_PairDevice (
     unsigned char           ui8isDevicePaired   = 0;
     enBTRCoreDeviceType     lenBTRCoreDevTy     = enBTRCoreSpeakers;
     enBTRCoreDeviceClass    lenBTRCoreDevCl     = enBTRCore_DC_Unknown;
+    eBTRMgrRet              lenBtrMgrRet        = eBTRMgrFailure;
     int                     j;
     gboolean                bIsPS4 = FALSE;
 
@@ -5039,7 +5040,7 @@ BTRMGR_PairDevice (
         }
     }
     //Inside this function there is a failure logs so, did not any failures logs here.
-    btrMgr_GetDeviceDetails(ahBTRMgrDevHdl,&stDeviceInfo);
+    lenBtrMgrRet = btrMgr_GetDeviceDetails(ahBTRMgrDevHdl,&stDeviceInfo);
 
     BTRMGR_GetPairedDevices (aui8AdapterIdx, &gListOfPairedDevices);
     for (j = 0; j <= gListOfPairedDevices.m_numOfDevices; j++) {
@@ -5089,7 +5090,6 @@ BTRMGR_PairDevice (
 
     if(lenBTRCoreDevTy == enBTRCoreHID) {
         if(!ui8isDevicePaired) {
-            unsigned char ui8IgnorePairFaildMsg = 0;
 
             if(bIsPS4) {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_COMPLETE;
@@ -5098,25 +5098,20 @@ BTRMGR_PairDevice (
             } else {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
                 lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
-
-                // Xbox gen4 firmware 5.9 is not supported in bluetooth 5.0 and 4.9
-                if (BTRCORE_XBOX_VENDOR_ID == stDeviceInfo.ui32ModaliasVendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == stDeviceInfo.ui32ModaliasProductId &&
-                        BTRCORE_XBOX_GEN4_DEF_FIRMWARE == stDeviceInfo.ui32ModaliasDeviceId ) {
-                    char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
-                    if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
-                        BTRMGRLOG_INFO ("Failed to pair due to unsupported device\n");
-                        ui8IgnorePairFaildMsg = 1; // As per the requirement we have to send only unsupported event for incompatibility devices
-                    }
-                }
             }
 
-            if (gfpcBBTRMgrEventOut && !ui8IgnorePairFaildMsg ) {
+            if (gfpcBBTRMgrEventOut) {
                 gfpcBBTRMgrEventOut(lstEventMessage);
             }
-            //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
-            BTRMGRLOG_ERROR ("Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X\n",
-            stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
-            stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+
+            BTRMGRLOG_INFO("Get device details status %u\n", lenBtrMgrRet);
+            if(lenBtrMgrRet == eBTRMgrSuccess) {
+                //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
+                BTRMGRLOG_ERROR ("Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X\n",
+                stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
+                stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+            }
+
             BTRMGRLOG_ERROR ("pairing failed device MAC %s\n",stDeviceInfo.pcDeviceAddress);
             ghBTRMgrDevHdlLastPaired = ahBTRMgrDevHdl;
             btrMgr_SetLastPairedDeviceStatusHoldOffTimer();
@@ -9282,23 +9277,15 @@ btrMgr_DeviceStatusCb (
 
             BTRMGRLOG_INFO ("btrMgr_DeviceStatusCb callaback v%04Xp%04Xd%04X\n", p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
 
-            if (BTRCORE_XBOX_VENDOR_ID == p_StatusCB->ui32VendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == p_StatusCB->ui32ProductId &&
-                    BTRCORE_XBOX_GEN4_DEF_FIRMWARE == p_StatusCB->ui32DeviceId) {
-                char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
-                if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
-                    if (p_StatusCB->eDeviceCurrState != enBTRCoreDevStUnsupported) {
-                        BTRMGRLOG_INFO ("Ignored notification to UI for incompatible device v%04Xp%04Xd%04X\n",
-                        p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
+            if(BTRCore_IsUnsupportedGamepad(p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId)) {
+                if (p_StatusCB->eDeviceCurrState != enBTRCoreDevStUnsupported) {
+                    BTRMGRLOG_INFO ("Ignored notification to UI for incompatible device v%04Xp%04Xd%04X\n",
+                    p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
 
-                        return lenBtrCoreRet;
-                    }
-                }
-                else {
-                    BTRMGRLOG_INFO ("Failed to get BT version\n");
+                    return lenBtrCoreRet;
                 }
             }
         }
- 
         switch (p_StatusCB->eDeviceCurrState) {
         case enBTRCoreDevStPaired:
             /* Post this event only for HID Devices and Audio-In Devices */
