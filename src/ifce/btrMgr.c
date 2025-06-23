@@ -9416,6 +9416,10 @@ btrMgr_DeviceStatusCb (
                                 break;
                         }
 #endif //AUTO_CONNECT_ENABLED
+                        if (ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) {
+                            BTRMGRLOG_INFO("Auto connection rejection in progress after disconnection, skipped posting the device found\n");
+                            break;
+                        }
                         lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
                         btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
                         BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
