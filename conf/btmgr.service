@@ -18,7 +18,7 @@
 ##########################################################################
 [Unit]
 Description=Bluetooth Manager Daemon over IARM IPC
-After=iarmbusd.service bluetooth.service audiocapturemgr.service
+After=iarmbusd.service bluetooth.service audiocapturemgr.service wpeframework-powermanager.service
 Requires=iarmbusd.service bluetooth.service audiocapturemgr.service
 
 [Service]
