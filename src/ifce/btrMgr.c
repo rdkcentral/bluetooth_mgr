@@ -5295,11 +5295,6 @@ BTRMGR_GetPairedDevices (
     int i = 0;
     int j = 0;
 
-    if (isDeinitInProgress) {
-        BTRMGRLOG_ERROR ("Process shutdown in progress, So not able read the list of discovered devices ...\n");
-        return BTRMGR_RESULT_GENERIC_FAILURE;
-    }
-
     if (!ghBTRCoreHdl) {
         BTRMGRLOG_ERROR ("BTRCore is not Inited\n");
         return BTRMGR_RESULT_INIT_FAILED;
