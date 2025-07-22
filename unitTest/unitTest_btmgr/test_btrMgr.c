@@ -65,6 +65,7 @@ extern void *gpvMainLoop;
 extern void *gpvMainLoopThread;
 extern tBTRCoreHandle ghBTRCoreHdl;
 extern tBTRMgrPIHdl ghBTRMgrPiHdl;
+extern bool isDeinitInProgress;
 extern stBTRCoreListAdapters gListOfAdapters;
 extern BTRMGR_PairedDevicesList_t gListOfPairedDevices;
 extern BTRMGR_DiscoveredDevicesList_t gListOfDiscoveredDevices;
