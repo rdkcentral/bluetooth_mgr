@@ -1023,6 +1023,17 @@ BTRMGR_Result_t BTRMGR_GetDeviceProperties(unsigned char aui8AdapterIdx, BTRMgrD
 BTRMGR_Result_t BTRMGR_GetDeviceBatteryLevel (unsigned char aui8AdapterIdx, BTRMgrDeviceHandle ahBTRMgrDevHdl,unsigned char * pDeviceBatteryLevel);
 
 /**
+ * @brief  This API initates or reports the gamepad connections from the device with operation type.
+ *
+ * @param[in]  aui8AdapterIdx       Index of bluetooth adapter.
+ * @param[in]  aenBTRMgrDevConT     Device opeartion type.
+ *
+ * @return Returns the status of the operation.
+ * @retval eBTRMgrSuccess on success, appropriate error code otherwise.
+ */
+BTRMGR_Result_t BTRMGR_ConnectGamepads_StartUp(unsigned char aui8AdapterIdx, BTRMGR_DeviceOperationType_t aenBTRMgrDevConT);
+
+/**
  * @brief  This API initates the streaming from the device with default operation type.
  *
  * @param[in]  aui8AdapterIdx       Index of bluetooth adapter.

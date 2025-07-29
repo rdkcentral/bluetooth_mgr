@@ -5952,6 +5952,87 @@ BTRMGR_GetDeviceBatteryLevel (
 }
 #ifndef LE_MODE
 BTRMGR_Result_t
+BTRMGR_ConnectGamepads_StartUp (
+    unsigned char                   aui8AdapterIdx,
+    BTRMGR_DeviceOperationType_t    aenBTRMgrDevConT
+) {
+    BTRMGR_Result_t           lenBtrMgrResult = BTRMGR_RESULT_SUCCESS;
+    int                       auth;
+    stBTRCoreDevStatusCBInfo  stRecreatedEvent = { 0 };
+    BTRMGR_EventMessage_t     lstEventMessage;
+
+    char lcPowerState[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
+    BTRMGR_SysDiagChar_t lpcPowerString = BTRMGR_SYS_DIAG_POWERSTATE;
+
+    if (eBTRMgrSuccess == BTRMGR_SD_GetData(ghBTRMgrSdHdl, lpcPowerString, lcPowerState)) {
+        if(strncmp(lcPowerState, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON) != 0))
+        {
+            BTRMGRLOG_ERROR("Power state is %s no need to try connecting device as it will connect once ON\n", lcPowerState);
+            return BTRMGR_RESULT_GENERIC_FAILURE;
+        }
+        else
+        {
+            BTRMGRLOG_INFO("Power state is ON\n");
+        }
+    }
+    else
+    {
+        BTRMGRLOG_ERROR("Could not get power state\n");
+    }
+
+    BTRMGR_GetPairedDevices (aui8AdapterIdx, &gListOfPairedDevices);
+    for (unsigned char i = 0; i < gListOfPairedDevices.m_numOfDevices; i++)
+    {
+        stBTRCoreBTDevice stDeviceInfo = { 0 };
+        btrMgr_GetDeviceDetails(gListOfPairedDevices.m_deviceProperty[i].m_deviceHandle, &stDeviceInfo);
+        if (stDeviceInfo.bDeviceConnected
+        && (gListOfPairedDevices.m_deviceProperty[i].m_deviceType == BTRMGR_DEVICE_TYPE_HID
+        || gListOfPairedDevices.m_deviceProperty[i].m_deviceType ==BTRMGR_DEVICE_TYPE_HID_GAMEPAD)
+        && (!btrMgr_IsDeviceRdkRcu(&gListOfPairedDevices.m_deviceProperty[i].m_serviceInfo, stDeviceInfo.ui16DevAppearanceBleSpec)))
+        {
+            strncpy(stRecreatedEvent.deviceName, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
+            strncpy(stRecreatedEvent.deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
+            stRecreatedEvent.deviceId = stDeviceInfo.tDeviceId;
+            stRecreatedEvent.eDeviceClass = stDeviceInfo.enDeviceType;
+            stRecreatedEvent.eDeviceType = stDeviceInfo.enDeviceType;
+            stRecreatedEvent.isPaired = 1;
+            stRecreatedEvent.ui32VendorId = stDeviceInfo.ui32ModaliasVendorId;
+            stRecreatedEvent.ui32ProductId = stDeviceInfo.ui32ModaliasProductId;
+            stRecreatedEvent.ui32DeviceId = stDeviceInfo.ui32ModaliasDeviceId;
+            stRecreatedEvent.ui16DevAppearanceBleSpec = stDeviceInfo.ui16DevAppearanceBleSpec;
+            stRecreatedEvent.eDevicePrevState = enBTRCoreDevStPaired;
+            stRecreatedEvent.eDeviceCurrState = enBTRCoreDevStConnected;
+
+
+            //recreate event that would have been received from the connectCb
+            btrMgr_IncomingConnectionAuthentication(&stRecreatedEvent, &auth);
+
+            if (!auth)
+                continue;
+
+            btrMgr_MapDevstatusInfoToEventInfo ((void *)&stRecreatedEvent, &lstEventMessage, BTRMGR_EVENT_DEVICE_FOUND);
+            lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
+            btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
+            BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
+
+            BTRMGRLOG_DEBUG("Posting Device Found Event ..\n");
+
+            if (gbGamepadStandbyMode && ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
+                (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)))
+            {
+                BTRMGRLOG_WARN("Device is in standby mode, we won't post to the upper layers if a device is found\n");
+                continue;
+            }
+            if (gfpcBBTRMgrEventOut) {
+                gfpcBBTRMgrEventOut(lstEventMessage);
+            }
+        }
+    }
+
+    return lenBtrMgrResult;
+}
+
+BTRMGR_Result_t
 BTRMGR_StartAudioStreamingOut_StartUp (
     unsigned char                   aui8AdapterIdx,
     BTRMGR_DeviceOperationType_t    aenBTRMgrDevConT
@@ -9013,6 +9094,9 @@ btrMgr_ConnPwrStChangeTimerCb (
     if ( ghBTRMgrDevHdlCurStreaming == 0 ) {
             if( BTRMGR_StartAudioStreamingOut_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_AUDIO_OUTPUT) != BTRMGR_RESULT_SUCCESS) {
                      BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_StartAudioStreamingOut_StartUp Failed!\n");
+            }
+            if( BTRMGR_ConnectGamepads_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_HID) != BTRMGR_RESULT_SUCCESS) {
+                     BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_ConnectGamepads_StartUp Failed!\n");
             }
     }
 
