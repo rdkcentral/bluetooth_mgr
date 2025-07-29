@@ -9492,6 +9492,22 @@ btrMgr_DeviceStatusCb (
                         *from UI, the connection completion event will be posted*/
                         if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected)
                         break;
+                        /* After connection failure, get confirmation from the UI to connect back.
+			 * For Classsic HID devices ,Connect method will be triggered from UI based
+			 * on the connect request event on connection authorization process, so not
+			 * required to post connection completion event. */
+                        if (p_StatusCB->eDevicePrevState == enBTRCoreDevStConnecting &&
+                            lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) {
+                            if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
+                                int auth = 0;
+                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
+                                if (!auth)
+                                    break;
+                            } else {
+                                BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
+                                break;
+                            }
+                        }
 
                         BTRMGRLOG_WARN ("Sending Event for HID \n");
                         btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
