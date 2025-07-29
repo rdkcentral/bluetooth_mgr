@@ -77,6 +77,7 @@ extern rbusHandle_t    rbusHandle;
 typedef struct _stBTRMgrSDHdl {
 #ifndef BUILD_FOR_PI
     PowerController_PowerState_t    _powerState;
+    bool                         registeredPowerCb;
 #endif
     stBTRMgrSysDiagStatus           lstBtrMgrSysDiagStat;
     fPtr_BTRMgr_SD_StatusCb         fpcBSdStatus;
@@ -230,6 +231,7 @@ BTRMgr_SD_Init (
     sDHandle->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_UNKNOWN;
 #ifndef BUILD_FOR_PI
     sDHandle->_powerState = POWER_STATE_OFF;
+    sDHandle->registeredPowerCb = FALSE;
 #endif
     sDHandle->fpcBSdStatus= afpcBSdStatus;
     sDHandle->pvcBUserData= apvUserData;
@@ -245,8 +247,14 @@ BTRMgr_SD_DeInit (
     tBTRMgrSDHdl hBTRMgrSdHdl
 ) {
     stBTRMgrSDHdl*  pstBtrMgrSdHdl = (stBTRMgrSDHdl*)hBTRMgrSdHdl;
-
     if (NULL != pstBtrMgrSdHdl) {
+#ifdef BTR_SYS_DIAG_IARM_ENABLE
+        if (pstBtrMgrSdHdl->registeredPowerCb)
+        {
+            pstBtrMgrSdHdl->registeredPowerCb = FALSE;
+            IARM_Bus_UnRegisterEventHandler(IARM_BUS_PWRMGR_NAME, IARM_BUS_PWRMGR_EVENT_MODECHANGED);
+        }
+#endif //BTR_SYS_DIAG_IARM_ENABLE
         gpstSDHandle = NULL;
         free((void*)pstBtrMgrSdHdl);
         pstBtrMgrSdHdl = NULL;
@@ -640,18 +648,25 @@ BTRMGR_SD_GetData (
 
                 pstBtrMgrSdHdl->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_POWERSTATE;
                 strncpy(pstBtrMgrSdHdl->lstBtrMgrSysDiagStat.pcSysDiagRes, aData, BTRMGR_STR_LEN_MAX - 1);
-                pstBtrMgrSdHdl->_powerState = curState;
-		    
-                if (curState != POWER_STATE_ON) {
-                    BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE PWRMGR :%d - %s\n", curState, aData);
-		    PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
+                pstBtrMgrSdHdl->_powerState = param.curState;
+
+                BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE PWRMGR :%d - %s\n", param.curState, aData);
+                if (!pstBtrMgrSdHdl->registeredPowerCb)
+                {
+                    pstBtrMgrSdHdl->registeredPowerCb = TRUE;
+		            PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
                 }
+                
             }
             else {
-		    BTRMGRLOG_ERROR("BTRMGR_SYS_DIAG_POWERSTATE Failure : Return code is %d\n", res);
-		    /* In case of Failure to call GetPowerState registet the event handler anyway */
-		    PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
-		    rc = eBTRMgrFailure;
+                BTRMGRLOG_DEBUG("BTRMGR_SYS_DIAG_POWERSTATE Failure : Return code is %d\n", res);
+                /* In case of Failure to call GetPowerState registet the event handler anyway */
+                if (!pstBtrMgrSdHdl->registeredPowerCb)
+                    {
+                        pstBtrMgrSdHdl->registeredPowerCb = TRUE;
+                        PowerController_RegisterPowerModeChangedCallback(btrMgr_SysDiag_powerModeChangeCb, NULL);
+                    }
+                rc = eBTRMgrFailure;
             }
 #else
 	    rc = eBTRMgrFailure;
@@ -821,8 +836,17 @@ btrMgr_SysDiag_powerModeChangeCb (
                 gpstSDHandle->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_POWERSTATE;
 
 
-                if (gpstSDHandle->_powerState != newState && (newState != POWER_STATE_ON && newState != POWER_STATE_STANDBY_LIGHT_SLEEP)) {
-                    BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device is being suspended\n");
+                if (gpstSDHandle->_powerState != param->data.state.newState && (param->data.state.newState == POWER_STATE_STANDBY || param->data.state.newState == POWER_STATE_STANDBY_LIGHT_SLEEP || param->data.state.newState == POWER_STATE_STANDBY_DEEP_SLEEP)) {
+                    BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device is being suspended: %s\n", gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes);
+                    if (gpstSDHandle->fpcBSdStatus) {
+                        stBTRMgrSysDiagStatus   lstBtrMgrSysDiagStat;
+                        eBTRMgrRet              leBtrMgrSdRet = eBTRMgrSuccess;
+
+                        MEMCPY_S(&lstBtrMgrSysDiagStat, sizeof(stBTRMgrSysDiagStatus), &gpstSDHandle->lstBtrMgrSysDiagStat, sizeof(stBTRMgrSysDiagStatus));
+                        if ((leBtrMgrSdRet = gpstSDHandle->fpcBSdStatus(&lstBtrMgrSysDiagStat, gpstSDHandle->pvcBUserData)) != eBTRMgrSuccess) {
+                            BTRMGRLOG_ERROR("BTRMGR_SYS_DIAG_POWERSTATE - Device suspended - NOT PROCESSED\n");
+                        }
+                    }
                 }
 
                 if (gpstSDHandle->_powerState != newState && newState == POWER_STATE_ON) {

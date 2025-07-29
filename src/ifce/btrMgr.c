@@ -105,6 +105,8 @@
 #define BTMGR_PROCESS_NAME        "btMgrBus"
 #define RDK_LOGGER_BTMGR_NAME "LOG.RDK.BTRMGR"
 #define RDK_LOGGER_BTCORE_NAME "LOG.RDK.BTRCORE"
+#define BTRMGR_REMOTE_DEVICE   "Remote Device"
+
 
 #ifdef RDKTV_PERSIST_VOLUME
 #define BTRMGR_DEFAULT_SET_VOLUME_INTERVAL             2
@@ -237,18 +239,19 @@ STATIC pid_t                            gPidOfRunningHidMonitor     = 0;
 unsigned char                           gDebugModeEnabled           = 0; //shared with audiocaptureMgr
 #endif
 
-STATIC void*                            gpvMainLoop                 = NULL;
-STATIC void*                            gpvMainLoopThread           = NULL;
-STATIC BTRMGR_EventCallback             gfpcBBTRMgrEventOut         = NULL;
-STATIC BOOLEAN                          gIsAdvertisementSet         = FALSE;
-STATIC BOOLEAN                          gIsDeviceAdvertising        = FALSE;
-STATIC BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
-STATIC BOOLEAN                          gEliteIncomCon              = FALSE;
-#ifdef RDKTV_PERSIST_VOLUME
-STATIC BOOLEAN                          gSkipVolumeUpdate           = FALSE;
-STATIC volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
-STATIC volatile guint                   gDefaultSetVolumeTimeoutRef = 0;
-STATIC volatile guint                   gDefaultConInProgressTimeoutRef = 0;
+static void*                            gpvMainLoop                 = NULL;
+static void*                            gpvMainLoopThread           = NULL;
+static BTRMGR_EventCallback             gfpcBBTRMgrEventOut         = NULL;
+static BOOLEAN                          gIsAdvertisementSet         = FALSE;
+static BOOLEAN                          gIsDeviceAdvertising        = FALSE;
+static BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
+static BOOLEAN                          gEliteIncomCon              = FALSE;
+static BOOLEAN                          gbGamepadStandbyMode        = FALSE;
+#ifdef RDKTV_PERSIST_VOLUME_SKY
+static BOOLEAN                          gSkipVolumeUpdate           = FALSE;
+static volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
+static volatile guint                   gDefaultSetVolumeTimeoutRef = 0;
+static volatile guint                   gDefaultConInProgressTimeoutRef = 0;
 #endif
 
 #ifdef LE_MODE
@@ -3927,11 +3930,14 @@ BTRMGR_Init (
         BTRMGRLOG_ERROR ("Could not initialize SD - SysDiag module\n");
     }
 
+
 #ifdef LE_MODE
     btrMgr_CheckBroadcastAvailability();
 #else
     btrMgr_CheckAudioInServiceAvailability();
     btrMgr_CheckHidGamePadServiceAvailability();
+    //this should be the gamepad state anyway, but make sure in case of an unexpected shutdown in standby/lightsleep mode
+    BTRCore_refreshLEActionListForGamepads(ghBTRCoreHdl);
 #endif
 
 #if 0
@@ -5978,6 +5984,26 @@ BTRMGR_StartAudioStreamingOut_StartUp (
         lbSecondAttempt = true;
     }
 #endif //AUTO_CONNECT_ENABLED
+
+    //get power state as we do not need to connect if the power state is not ON and power callback will always be registered
+    char lcPowerState[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
+    BTRMGR_SysDiagChar_t lpcPowerString = BTRMGR_SYS_DIAG_POWERSTATE;
+
+    if (eBTRMgrSuccess == BTRMGR_SD_GetData(ghBTRMgrSdHdl, lpcPowerString, lcPowerState)) {
+        if(strncmp(lcPowerState, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON) != 0))
+        {
+            BTRMGRLOG_ERROR("Power state is %s no need to try connecting device as it will connect once ON\n", lcPowerState);
+            return BTRMGR_RESULT_GENERIC_FAILURE;
+        }
+        else
+        {
+            BTRMGRLOG_INFO("Power state is ON\n");
+        }
+    }
+    else
+    {
+        BTRMGRLOG_ERROR("Could not get power state\n");
+    }
 
     gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
     if (BTRMgr_PI_GetAllProfiles(ghBTRMgrPiHdl, &lstPersistentData) == eBTRMgrFailure) {
@@ -8941,6 +8967,12 @@ static gboolean btrMgr_PostDeviceFoundEvtTimerCb (gpointer user_data)
     stBTRCoreDevStatusCBInfo *cb_data = (stBTRCoreDevStatusCBInfo*)user_data;
     BTRMGRLOG_DEBUG("Posting Device Found Event ..\n");
     btrMgr_MapDevstatusInfoToEventInfo ((void *)cb_data, &lstEventMessage, BTRMGR_EVENT_DEVICE_FOUND);
+    if (gbGamepadStandbyMode && ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
+        (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)))
+    {
+        BTRMGRLOG_WARN("Device is in standby mode, we won't post to the upper layers if a device is found\n");
+        return G_SOURCE_REMOVE;
+    }
     if (gfpcBBTRMgrEventOut) {
         gfpcBBTRMgrEventOut(lstEventMessage);
     }
@@ -9014,6 +9046,8 @@ btrMgr_ConnPwrStChangeTimerCb (
             if( BTRMGR_StartAudioStreamingOut_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_AUDIO_OUTPUT) != BTRMGR_RESULT_SUCCESS) {
                      BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_StartAudioStreamingOut_StartUp Failed!\n");
             }
+            //gamepads should connect back now
+            BTRCore_refreshLEActionListForGamepads(ghBTRCoreHdl);
     }
 
 #endif
@@ -9158,7 +9192,14 @@ btrMgr_SDStatusCb (
     stBTRMgrSysDiagStatus*  apstBtrMgrSdStatus,
     void*                   apvUserData
 ) {
-    eBTRMgrRet           leBtrMgrSdRet = eBTRMgrFailure;
+    eBTRMgrRet                      leBtrMgrSdRet = eBTRMgrSuccess;
+    
+    BTRMGR_Result_t                 lenBtrMgrResult   = BTRMGR_RESULT_SUCCESS;
+    enBTRCoreRet                    lenBtrCoreRet     = enBTRCoreSuccess;
+    unsigned short                  ui16LoopIdx       = 0;
+    BTRMGR_ConnectedDevicesList_t  *lstConnectedDevices;
+    unsigned int                    ui32sleepTimeOut = 1;
+    gboolean                        isRemoteDev = FALSE;
 
     if ((apstBtrMgrSdStatus != NULL) &&
 #ifndef LE_MODE
@@ -9184,6 +9225,59 @@ btrMgr_SDStatusCb (
         if (gConnPwrStChangeTimeOutRef)
             leBtrMgrSdRet = eBTRMgrSuccess;
     }
+    
+    if ((apstBtrMgrSdStatus != NULL) && (apstBtrMgrSdStatus->enSysDiagChar == BTRMGR_SYS_DIAG_POWERSTATE))
+    {
+        if (!strncmp(apstBtrMgrSdStatus->pcSysDiagRes, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)))
+        {
+            BTRMGRLOG_INFO("Exited standby mode, allowing gamepads to connect\n");
+            gbGamepadStandbyMode = FALSE;
+        }
+        else if (!strncmp(apstBtrMgrSdStatus->pcSysDiagRes, BTRMGR_SYS_DIAG_PWRST_STANDBY, strlen(BTRMGR_SYS_DIAG_PWRST_STANDBY)) || 
+                 !strncmp(apstBtrMgrSdStatus->pcSysDiagRes, BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP, strlen(BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP)))
+        {
+            BTRMGRLOG_INFO("Entered standby mode, disconnecting gamepads\n");
+            gbGamepadStandbyMode = TRUE;
+            //stop any gamepads from connecting whilst in standby mode
+            BTRCore_clearLEActionListForGamepads(ghBTRCoreHdl);
+            //Disconnect all connected gamepads
+            lstConnectedDevices = malloc(sizeof(BTRMGR_ConnectedDevicesList_t));
+            if (!lstConnectedDevices)
+            {
+                BTRMGRLOG_ERROR("Run out memory for connected devices list\n");
+                return eBTRMgrFailure;
+            }
+            if ((lenBtrMgrResult = BTRMGR_GetConnectedDevices(0, lstConnectedDevices)) == BTRMGR_RESULT_SUCCESS) {
+                BTRMGRLOG_DEBUG ("Connected Devices = %d\n", lstConnectedDevices->m_numOfDevices);
+
+                for (ui16LoopIdx = 0; ui16LoopIdx < lstConnectedDevices->m_numOfDevices; ui16LoopIdx++) {
+                    unsigned int            ui32confirmIdx  = 2;
+                    enBTRCoreDeviceType     lenBtrCoreDevTy = enBTRCoreUnknown;
+                    enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
+                    isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_serviceInfo, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
+                    BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
+
+                    if (!isRemoteDev && ((lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
+                    (lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)))
+                    {
+                        if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
+                            BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                        }
+
+                        do {
+                            unsigned int ui32sleepIdx = 2;
+
+                            do {
+                                sleep(ui32sleepTimeOut);
+                                lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
+                            } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
+                        } while (--ui32confirmIdx);
+                    }
+                }
+            }
+            free(lstConnectedDevices);
+        } 
+    }
 
     return leBtrMgrSdRet;
 }
@@ -9192,6 +9286,7 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
 {
     BTRMGR_EventMessage_t lstEventMessage;
     MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+
     lstEventMessage.m_adapterIndex = 0;
     lstEventMessage.m_eventType    = BTRMGR_EVENT_RECEIVED_EXTERNAL_CONNECT_REQUEST;
     lstEventMessage.m_externalDevice.m_deviceHandle = ((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceId;
@@ -10328,7 +10423,8 @@ btrMgr_ConnectionInAuthenticationCb (
             (BTRMGR_XBOX_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_XBOX_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_NINTENDO_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_NINTENDO_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_XBOX_ADAPTIVE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ADAPTIVE_PRODUCT_ID == ui32MProductId))) &&
-            isDeinitInProgress != TRUE) {
+            isDeinitInProgress != TRUE &&
+            !gbGamepadStandbyMode) {
 
             if (apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlPairingInProgress &&
                 apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlConnInProgress) {
@@ -10389,10 +10485,13 @@ btrMgr_ConnectionInAuthenticationCb (
         else {
             BTRMGRLOG_ERROR ("Incoming Connection denied\n");
             *api32ConnInAuthResp = 0;
-            if (ghBTRMgrDevHdlLastDisconnected == apstConnCbInfo->stKnownDevice.tDeviceId) {
-                BTRMGRLOG_INFO("Restarting the timer to clear the disconnection status\n");
-                btrMgr_ClearDisconnectStatusHoldOffTimer();
-                btrMgr_SetDisconnectStatusHoldOffTimer();
+            if (!gbGamepadStandbyMode)
+            {
+                if (ghBTRMgrDevHdlLastDisconnected == apstConnCbInfo->stKnownDevice.tDeviceId) {
+                    BTRMGRLOG_INFO("Restarting the timer to clear the disconnection status\n");
+                    btrMgr_ClearDisconnectStatusHoldOffTimer();
+                    btrMgr_SetDisconnectStatusHoldOffTimer();
+                }
             }
         }
     }
