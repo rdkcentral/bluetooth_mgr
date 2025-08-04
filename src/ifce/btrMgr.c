@@ -11166,6 +11166,7 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
                 BTRMGRLOG_INFO("Device is already advertising...\n");
         }
     }
+	BTRMGRLOG_INFO("Device is already advertising...\n");
     return G_SOURCE_CONTINUE;
 }
 
@@ -11200,6 +11201,3 @@ BTRMGR_LEDeviceActivation (
 #endif /*LE_MODE*/
 #endif
 /* End of File */
-
-
-sdadasd
