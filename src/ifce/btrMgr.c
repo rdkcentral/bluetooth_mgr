@@ -5979,7 +5979,7 @@ BTRMGR_ConnectGamepads_StartUp (
     }
 
     BTRMGR_GetPairedDevices (aui8AdapterIdx, &gListOfPairedDevices);
-    for (uint8_t i = 0; i < gListOfPairedDevices.m_numOfDevices; i++)
+    for (int i = 0; i < gListOfPairedDevices.m_numOfDevices; i++)
     {
         stBTRCoreBTDevice stDeviceInfo = { 0 };
         btrMgr_GetDeviceDetails(gListOfPairedDevices.m_deviceProperty[i].m_deviceHandle, &stDeviceInfo);
