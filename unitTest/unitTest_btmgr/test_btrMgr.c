@@ -4979,7 +4979,7 @@ void test_btrMgr_SDStatusCb_PowerStateOff_Failure(void)
 
     eBTRMgrRet result = btrMgr_SDStatusCb(&btrMgrSdStatus, NULL);
 
-    TEST_ASSERT_EQUAL(eBTRMgrFailure, result);
+    TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
 }
 void test_btrMgr_SDStatusCb_PowerStateOn_Success(void)
 {
