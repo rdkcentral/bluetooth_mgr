@@ -5608,6 +5608,7 @@ void test_BTRMGR_Init_Success(void)
     // Assert the expected result
     BTRMgr_PI_Init_IgnoreAndReturn(eBTRMgrSuccess);
     BTRMgr_SD_Init_IgnoreAndReturn(eBTRMgrFailure);
+    BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
 
     BTRMGR_Result_t result = BTRMGR_Init();
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
