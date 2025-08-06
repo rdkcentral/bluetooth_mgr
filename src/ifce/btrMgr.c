@@ -9273,7 +9273,7 @@ btrMgr_SDStatusCb (
     unsigned int                    ui32sleepTimeOut = 1;
     gboolean                        isRemoteDev = FALSE;
 
-    if(apstBtrMgrSdStatus == NULL || apvUserData == NULL)
+    if(apstBtrMgrSdStatus == NULL)
     {
 	BTRMGRLOG_ERROR("Invalid memory\n");
         return eBTRMgrFailure;	
