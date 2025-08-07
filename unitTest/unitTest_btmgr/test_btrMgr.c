@@ -7561,6 +7561,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
         }
     };
 
+    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
@@ -7623,7 +7624,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_LastConnectedDevice(void) {
     unsigned char adapterIdx = 0;
     BTRMGR_DeviceOperationType_t devOpType = BTRMGR_DEVICE_OP_TYPE_UNKNOWN;
    
-
+    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
