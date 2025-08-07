@@ -7509,6 +7509,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_FailureToGetAllProfiles(void) {
     unsigned char adapterIdx = 0;
     BTRMGR_DeviceOperationType_t devOpType = BTRMGR_DEVICE_OP_TYPE_UNKNOWN;
 
+    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock failure to get all profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrFailure);
     BTRCore_GetAdapterAddr_StubWithCallback(_mock_BTRCore_GetAdapterAddr_Success);
