@@ -9297,7 +9297,7 @@ void test_BTRMGR_StopSendingAudioFromFile_FailureToDeinitializeStreamOutModule(v
     BTRMGR_Result_t result = BTRMGR_StopSendingAudioFromFile();
 
     // Verify the result
-    TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
+    TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
 }
 
 void test_BTRMGR_StopSendingAudioFromFile_InvalidInputParameters(void) {
