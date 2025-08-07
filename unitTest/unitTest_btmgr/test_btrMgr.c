@@ -962,6 +962,12 @@ _mock_BTRCore_SetEnableTxPower_Failure(
         return  enBTRCoreFailure;
     }
 
+unsigned char _mock_btrMgr_GetDevPaired_Success(BTRMgrDeviceHandle handle) {
+    return 1; // Always paired
+}
+eBTRMgrRet _mock_btrMgr_GetDeviceDetails_Success(BTRMgrDeviceHandle handle, void* details) {
+    return eBTRMgrSuccess;
+}
 
 void test_BTRMGR_GetNumberOfAdapters_InvalidInput(void)
 {
@@ -7574,6 +7580,9 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
     // Mock successful start of audio streaming
    // btrMgr_StartAudioStreamingOut_IgnoreAndReturn(eBTRMgrSuccess);
 
+    btrMgr_GetDevPaired_StubWithCallback(_mock_btrMgr_GetDevPaired_Success);
+    btrMgr_GetDeviceDetails_StubWithCallback(_mock_btrMgr_GetDeviceDetails_Success);
+    
     btrMgr_GetDevPaired_IgnoreAndReturn(1);
     btrMgr_GetDeviceDetails_IgnoreAndReturn(eBTRMgrSuccess);
     ghBTRMgrDevHdlCurStreaming = 0;
