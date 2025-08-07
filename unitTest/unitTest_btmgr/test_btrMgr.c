@@ -7574,6 +7574,10 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
     // Mock successful start of audio streaming
    // btrMgr_StartAudioStreamingOut_IgnoreAndReturn(eBTRMgrSuccess);
 
+    btrMgr_GetDevPaired_IgnoreAndReturn(1);
+    btrMgr_GetDeviceDetails_IgnoreAndReturn(eBTRMgrSuccess);
+    ghBTRMgrDevHdlCurStreaming = 0;
+    
     // Call the function under test
     BTRMGR_Result_t result = BTRMGR_StartAudioStreamingOut_StartUp(adapterIdx, devOpType);
 
