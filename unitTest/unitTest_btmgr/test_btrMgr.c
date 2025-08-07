@@ -7582,9 +7582,6 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
 
     btrMgr_GetDevPaired_StubWithCallback(_mock_btrMgr_GetDevPaired_Success);
     btrMgr_GetDeviceDetails_StubWithCallback(_mock_btrMgr_GetDeviceDetails_Success);
-    
-    btrMgr_GetDevPaired_IgnoreAndReturn(1);
-    btrMgr_GetDeviceDetails_IgnoreAndReturn(eBTRMgrSuccess);
     ghBTRMgrDevHdlCurStreaming = 0;
     
     // Call the function under test
