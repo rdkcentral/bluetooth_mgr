@@ -962,13 +962,6 @@ _mock_BTRCore_SetEnableTxPower_Failure(
         return  enBTRCoreFailure;
     }
 
-unsigned char _mock_btrMgr_GetDevPaired_Success(BTRMgrDeviceHandle handle) {
-    return 1; // Always paired
-}
-eBTRMgrRet _mock_btrMgr_GetDeviceDetails_Success(BTRMgrDeviceHandle handle, void* details) {
-    return eBTRMgrSuccess;
-}
-
 void test_BTRMGR_GetNumberOfAdapters_InvalidInput(void)
 {
     ghBTRCoreHdl = 5;
@@ -7579,10 +7572,6 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
 
     // Mock successful start of audio streaming
    // btrMgr_StartAudioStreamingOut_IgnoreAndReturn(eBTRMgrSuccess);
-
-    btrMgr_GetDevPaired_StubWithCallback(_mock_btrMgr_GetDevPaired_Success);
-    btrMgr_GetDeviceDetails_StubWithCallback(_mock_btrMgr_GetDeviceDetails_Success);
-    ghBTRMgrDevHdlCurStreaming = 0;
     
     // Call the function under test
     BTRMGR_Result_t result = BTRMGR_StartAudioStreamingOut_StartUp(adapterIdx, devOpType);
@@ -7611,6 +7600,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_AudioStreamingAlreadyCompleted(v
         }
     };
 
+    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
