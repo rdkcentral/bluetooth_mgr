@@ -4572,7 +4572,6 @@ void test_BTRMGR_PerformLeOp_SuccessfulLeOperationAndFoundLeWriteValueType(void)
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_return_PairedList);
     BTRCore_GetListOfScannedDevices_StubWithCallback(_mock_return_ScannedList);
     BTRCore_PerformLEOp_ExpectAndReturn(ghBTRCoreHdl, devHandle, leUuid, enBTRCoreLeOpGWriteValue, leOpArg, opResult, enBTRCoreSuccess);
-
     // Execute the function under test
     BTRMGR_Result_t result = BTRMGR_PerformLeOp(adapterIdx, devHandle, leUuid, BTRMGR_LE_OP_WRITE_VALUE, leOpArg, opResult);
 
