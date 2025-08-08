@@ -3805,7 +3805,8 @@ BTRMGR_Init (
     GThread*        pMainLoopThread= NULL;
 
     char            lpcBtVersion[BTRCORE_STR_LEN] = {'\0'};
-
+	isDeinitInProgress = FALSE;
+	
     if (ghBTRCoreHdl) {
         BTRMGRLOG_WARN("Already Inited; Return Success\n");
         return lenBtrMgrResult;
