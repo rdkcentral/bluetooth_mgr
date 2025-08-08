@@ -1086,7 +1086,7 @@ static inline void btrMgr_ClearSkipVolumeUpdateTimer(void)
 {
     if (gSkipVolumeUpdateTimeoutRef) {
         BTRMGRLOG_DEBUG ("Cancelling previous volume update hold off TimeOut Session : %u\n", gSkipVolumeUpdateTimeoutRef);
-		BTRMGRLOG_DEBUG ("Cancelling previous volume update hold off TimeOut Session : %u\n", gSkipVolumeUpdateTimeoutRef)
+		BTRMGRLOG_DEBUG ("Cancelling previous volume update hold off TimeOut Session : %u\n", gSkipVolumeUpdateTimeoutRef);
         g_source_destroy(g_main_context_find_source_by_id(gmainContext, gSkipVolumeUpdateTimeoutRef));
         gSkipVolumeUpdateTimeoutRef = 0;
     }
