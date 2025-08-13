@@ -7527,7 +7527,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_AdapterAddressMismatch(void) {
     BTRMGR_DeviceOperationType_t devOpType = BTRMGR_DEVICE_OP_TYPE_UNKNOWN;
     BTRMGR_PersistentData_t persistentData = { .adapterId = "00:11:22:33:44:56", .numOfProfiles = 0 };
 
-    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
+    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
