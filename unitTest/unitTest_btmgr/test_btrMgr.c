@@ -7562,7 +7562,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
         }
     };
 
-    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
+    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
