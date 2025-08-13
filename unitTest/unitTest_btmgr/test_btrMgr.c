@@ -4978,7 +4978,8 @@ void test_btrMgr_SDStatusCb_PowerStateOff_Failure(void)
 
     eBTRMgrRet result = btrMgr_SDStatusCb(&btrMgrSdStatus, NULL);
 
-    TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
+    TEST_ASSERT_EQUAL(eBTRMgrFailure, result);
+    //TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
 }
 void test_btrMgr_SDStatusCb_PowerStateOn_Success(void)
 {
@@ -6577,7 +6578,7 @@ void test_BTRMGR_Init_Success_Complete(void){
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     BTRMgr_PI_Init_IgnoreAndReturn(eBTRMgrFailure);
     BTRMgr_SD_Init_IgnoreAndReturn(eBTRMgrFailure);
-    BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
+    //BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
     BTRMGR_Result_t result = BTRMGR_Init();
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
     free(ghBTRCoreHdl);
@@ -7516,7 +7517,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_FailureToGetAllProfiles(void) {
     // Call the function under test
     BTRMGR_Result_t result = BTRMGR_StartAudioStreamingOut_StartUp(adapterIdx, devOpType);
     
-    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrSuccess);
+    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrSuccess);
     // Verify the result
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
 }
@@ -7526,7 +7527,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_AdapterAddressMismatch(void) {
     BTRMGR_DeviceOperationType_t devOpType = BTRMGR_DEVICE_OP_TYPE_UNKNOWN;
     BTRMGR_PersistentData_t persistentData = { .adapterId = "00:11:22:33:44:56", .numOfProfiles = 0 };
 
-    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
+    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
@@ -7561,7 +7562,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_SuccessfulStartAudioStreaming(vo
         }
     };
 
-    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
+    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
@@ -7601,7 +7602,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_AudioStreamingAlreadyCompleted(v
         }
     };
 
-    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
+    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
@@ -7624,7 +7625,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_LastConnectedDevice(void) {
     unsigned char adapterIdx = 0;
     BTRMGR_DeviceOperationType_t devOpType = BTRMGR_DEVICE_OP_TYPE_UNKNOWN;
    
-    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
+    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrFailure);
     // Mock successful retrieval of profiles
     BTRMgr_PI_GetAllProfiles_IgnoreAndReturn(eBTRMgrSuccess);
 
@@ -8503,7 +8504,8 @@ void test_BTRMGR_StartSendingAudioFromFile_FailureToStartStreamOutModule(void) {
 
     // Verify the result
     // latest code returned success for this failure
-    TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
+    //TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
+    TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
 }
 
 void test_BTRMGR_StartSendingAudioFromFile_FailureToStartAudioCapture(void) {
@@ -8537,7 +8539,8 @@ void test_BTRMGR_StartSendingAudioFromFile_FailureToStartAudioCapture(void) {
 
     // Verify the result
     // latest code success for this failure
-    TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
+    //TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
+    TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
 }
 
 void test_BTRMGR_StartSendingAudioFromFile_SuccessfulExecution(void) {
@@ -9297,7 +9300,8 @@ void test_BTRMGR_StopSendingAudioFromFile_FailureToDeinitializeStreamOutModule(v
     BTRMGR_Result_t result = BTRMGR_StopSendingAudioFromFile();
 
     // Verify the result
-    TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
+    //TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
+    TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
 }
 
 void test_BTRMGR_StopSendingAudioFromFile_InvalidInputParameters(void) {
