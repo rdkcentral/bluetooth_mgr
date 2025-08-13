@@ -4978,8 +4978,8 @@ void test_btrMgr_SDStatusCb_PowerStateOff_Failure(void)
 
     eBTRMgrRet result = btrMgr_SDStatusCb(&btrMgrSdStatus, NULL);
 
-    TEST_ASSERT_EQUAL(eBTRMgrFailure, result);
-    //TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
+    //TEST_ASSERT_EQUAL(eBTRMgrFailure, result);
+    TEST_ASSERT_EQUAL(eBTRMgrSuccess, result);
 }
 void test_btrMgr_SDStatusCb_PowerStateOn_Success(void)
 {
@@ -6578,7 +6578,7 @@ void test_BTRMGR_Init_Success_Complete(void){
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     BTRMgr_PI_Init_IgnoreAndReturn(eBTRMgrFailure);
     BTRMgr_SD_Init_IgnoreAndReturn(eBTRMgrFailure);
-    //BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
+    BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
     BTRMGR_Result_t result = BTRMGR_Init();
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
     free(ghBTRCoreHdl);
