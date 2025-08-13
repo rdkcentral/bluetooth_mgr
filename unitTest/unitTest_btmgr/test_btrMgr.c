@@ -8497,16 +8497,14 @@ void test_BTRMGR_StartSendingAudioFromFile_FailureToStartStreamOutModule(void) {
     BTRMgr_SO_GetEstimatedInABufSize_IgnoreAndReturn(eBTRMgrSuccess);
 
     // Mock failure to start StreamOut module
-    BTRMgr_SO_Start_IgnoreAndReturn(eBTRMgrSuccess);
-    BTRMgr_AC_TestStart_IgnoreAndReturn(eBTRMgrSuccess);
-    BTRCore_SetDeviceDataAckTimeout_IgnoreAndReturn(enBTRCoreSuccess);
-    
+    BTRMgr_SO_Start_IgnoreAndReturn(eBTRMgrFailure);
+        
     // Call the function under test
     BTRMGR_Result_t result = BTRMGR_StartSendingAudioFromFile(adapterIdx, deviceHandle, &mediaAudioOutInfo, &mediaAudioInInfo, outFd, outMTUSize, outDevDelay, audioInputFilePath);
 
     // Verify the result
     // latest code returned success for this failure
-    TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
+    TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
 }
 
 void test_BTRMGR_StartSendingAudioFromFile_FailureToStartAudioCapture(void) {
