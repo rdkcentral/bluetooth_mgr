@@ -7517,7 +7517,7 @@ void test_BTRMGR_StartAudioStreamingOut_StartUp_FailureToGetAllProfiles(void) {
     // Call the function under test
     BTRMGR_Result_t result = BTRMGR_StartAudioStreamingOut_StartUp(adapterIdx, devOpType);
     
-    //BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrSuccess);
+    BTRMGR_SD_GetData_IgnoreAndReturn(eBTRMgrSuccess);
     // Verify the result
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_GENERIC_FAILURE, result);
 }
