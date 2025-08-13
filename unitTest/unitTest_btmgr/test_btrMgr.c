@@ -6578,7 +6578,7 @@ void test_BTRMGR_Init_Success_Complete(void){
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     BTRMgr_PI_Init_IgnoreAndReturn(eBTRMgrFailure);
     BTRMgr_SD_Init_IgnoreAndReturn(eBTRMgrFailure);
-    BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
+    //BTRCore_refreshLEActionListForGamepads_IgnoreAndReturn(eBTRMgrSuccess);
     BTRMGR_Result_t result = BTRMGR_Init();
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
     free(ghBTRCoreHdl);
