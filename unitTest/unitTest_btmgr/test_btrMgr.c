@@ -697,7 +697,6 @@ enBTRCoreRet _mock_BTRCore_GetDeviceTypeClass_Failure(
 static enBTRCoreRet _mock_BTRCore_GetDeviceTypeClass_LE_Success(tBTRCoreHandle hBTRCore, tBTRCoreDevId aBTRCoreDevId, enBTRCoreDeviceType *apenBTRCoreDevTy, enBTRCoreDeviceClass *apenBTRCoreDevCl)
 {
     *apenBTRCoreDevTy = enBTRCoreLE;
-   // *apenBTRCoreDevCl = enBTRCore_DC_Headphones;
     return enBTRCoreSuccess;
 }
 static enBTRCoreRet _mock_BTRCore_GetDeviceTypeClass_Speaker_Success(tBTRCoreHandle hBTRCore, tBTRCoreDevId aBTRCoreDevId, enBTRCoreDeviceType *apenBTRCoreDevTy, enBTRCoreDeviceClass *apenBTRCoreDevCl)
