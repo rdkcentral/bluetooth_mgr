@@ -108,6 +108,10 @@ main (
         lenBtrMgrSoResult = BTRMGR_StartAudioStreamingOut_StartUp(0, BTRMGR_DEVICE_OP_TYPE_AUDIO_OUTPUT);
         printf ("BTRMGR_StartAudioStreamingOut_StartUp - %d\n", lenBtrMgrSoResult);
         fflush(stdout);
+
+        lenBtrMgrSoResult = BTRMGR_ConnectGamepads_StartUp(0, BTRMGR_DEVICE_OP_TYPE_HID);
+        printf ("BTRMGR_StartAudioStreamingOut_StartUp - %d\n", lenBtrMgrSoResult);
+        fflush(stdout);
 #endif
 
 #if defined(ENABLE_SD_NOTIFY)

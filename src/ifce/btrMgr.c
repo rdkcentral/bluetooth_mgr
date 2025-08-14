@@ -73,7 +73,7 @@
 #define BTRMGR_SIGNAL_FAIR       (-70)
 #define BTRMGR_SIGNAL_GOOD       (-60)
 
-#define BTRMGR_MODALIAS_RETRY_ATTEMPTS      3
+#define BTRMGR_MODALIAS_RETRY_ATTEMPTS      5
 #define BTRMGR_CONNECT_RETRY_ATTEMPTS       2
 #define BTRMGR_PAIR_RETRY_ATTEMPTS          10
 #define BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS 3
@@ -84,6 +84,7 @@
 #define BTMGR_AVDTP_SUSPEND_MAX_RETRIES 3
 #define BTRMGR_DISCOVERY_HOLD_OFF_TIME      120
 #define BTRMGR_UNITACTIVATION_STATUS_CHECK_TIME_INTERVAL 20
+#define BTRMGR_REMOTE_CONTROL_APPEARANCE 0x0180
 #define BTRMGR_MODELINE_MAX_LEN 38
 
 #define BTRMGR_BATTERY_DISCOVERY_TIMEOUT             360
@@ -101,10 +102,11 @@
 #define BTMGR_FLUSH_TIMEOUT_INTERVAL_MS 100
 #define BTMGR_FLUSH_TIMEOUT_LARGE_MTU_INTERVAL_MS 255
 #define BTMGR_LARGE_MTU_THRESHOLD 800
-#define BTRMGR_REMOTE_CONTROL_APPEARANCE 0x0180
+
 #define BTMGR_PROCESS_NAME        "btMgrBus"
 #define RDK_LOGGER_BTMGR_NAME "LOG.RDK.BTRMGR"
 #define RDK_LOGGER_BTCORE_NAME "LOG.RDK.BTRCORE"
+#define BTRMGR_REMOTE_DEVICE   "Remote Device"
 
 #ifdef RDKTV_PERSIST_VOLUME
 #define BTRMGR_DEFAULT_SET_VOLUME_INTERVAL             2
@@ -244,6 +246,7 @@ STATIC BOOLEAN                          gIsAdvertisementSet         = FALSE;
 STATIC BOOLEAN                          gIsDeviceAdvertising        = FALSE;
 STATIC BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
 STATIC BOOLEAN                          gEliteIncomCon              = FALSE;
+STATIC BOOLEAN                          gbGamepadStandbyMode        = FALSE;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BOOLEAN                          gSkipVolumeUpdate           = FALSE;
 STATIC volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
@@ -2773,9 +2776,7 @@ btrMgr_ConnectToDevice (
     case BTRMGR_DEVICE_OP_TYPE_LE:
         lenBTRCoreDeviceType = enBTRCoreLE;
         break;
-    case BTRMGR_DEVICE_OP_TYPE_HID:
-        // Indicates that the event was already emitted from DeviceStatus_Cb
-        lbtriggerConnectCompleteEvt = btrMgr_IsDevConnected(ahBTRMgrDevHdl);
+    case BTRMGR_DEVICE_OP_TYPE_HID:        
         lenBTRCoreDeviceType = enBTRCoreHID;
         ghBTRMgrDevHdlConnInProgress = ahBTRMgrDevHdl;
         break;
@@ -2890,17 +2891,16 @@ btrMgr_ConnectToDevice (
                     BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
                     gIsUserInitiated = 0;
                     ghBTRMgrDevHdlConnInProgress = 0;
-                    if (lbtriggerConnectCompleteEvt) {
-                        BTRMGR_EventMessage_t lstEventMessage;
-                        MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+                    
+                    BTRMGR_EventMessage_t lstEventMessage;
+                    MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
 
-                        lstEventMessage.m_adapterIndex  = aui8AdapterIdx;
-                        lstEventMessage.m_eventType     = BTRMGR_EVENT_DEVICE_CONNECTION_COMPLETE;
-                        MEMCPY_S(&lstEventMessage.m_pairedDevice, sizeof(BTRMGR_PairedDevices_t), &gListOfPairedDevices.m_deviceProperty[i32PairDevIdx], sizeof(BTRMGR_PairedDevices_t));
+                    lstEventMessage.m_adapterIndex  = aui8AdapterIdx;
+                    lstEventMessage.m_eventType     = BTRMGR_EVENT_DEVICE_CONNECTION_COMPLETE;
+                    MEMCPY_S(&lstEventMessage.m_pairedDevice, sizeof(BTRMGR_PairedDevices_t), &gListOfPairedDevices.m_deviceProperty[i32PairDevIdx], sizeof(BTRMGR_PairedDevices_t));
 
-                        if (gfpcBBTRMgrEventOut) {
-                            gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
-                        }
+                    if (gfpcBBTRMgrEventOut) {
+                        gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
                     }
                 }
                 else {
@@ -3805,8 +3805,7 @@ BTRMGR_Init (
     GThread*        pMainLoopThread= NULL;
 
     char            lpcBtVersion[BTRCORE_STR_LEN] = {'\0'};
-    isDeinitInProgress = FALSE;
-
+	
     if (ghBTRCoreHdl) {
         BTRMGRLOG_WARN("Already Inited; Return Success\n");
         return lenBtrMgrResult;
@@ -3932,6 +3931,8 @@ BTRMGR_Init (
 #else
     btrMgr_CheckAudioInServiceAvailability();
     btrMgr_CheckHidGamePadServiceAvailability();
+    //this should be the gamepad state anyway, but make sure in case of an unexpected shutdown in standby/lightsleep mode
+    BTRCore_refreshLEActionListForGamepads(ghBTRCoreHdl);
 #endif
 
 #if 0
@@ -4003,8 +4004,9 @@ BTRMGR_DeInit (
     unsigned short                  ui16LoopIdx       = 0;
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
     unsigned int                    ui32sleepTimeOut = 1;
-    isDeinitInProgress = TRUE;
     gboolean isRemoteDev = FALSE;
+
+    isDeinitInProgress = TRUE;
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
@@ -4871,8 +4873,8 @@ BTRMGR_GetDiscoveredDevices_Internal (
                 lpstBtrMgrSDevice = &pDiscoveredDevices->m_deviceProperty[j];
 
                 lpstBtrMgrSDevice->m_deviceHandle   = lstBtrCoreListOfSDevices.devices[i].tDeviceId;
-                lpstBtrMgrSDevice->m_rssi    = lstBtrCoreListOfSDevices.devices[i].i32RSSI;
-                lpstBtrMgrSDevice->m_signalLevel           = btrMgr_MapSignalStrengthToRSSI (lstBtrCoreListOfSDevices.devices[i].i32RSSI);
+                lpstBtrMgrSDevice->m_rssi           = lstBtrCoreListOfSDevices.devices[i].i32RSSI;
+                lpstBtrMgrSDevice->m_signalLevel    = btrMgr_MapSignalStrengthToRSSI (lstBtrCoreListOfSDevices.devices[i].i32RSSI);
                 lpstBtrMgrSDevice->m_deviceType     = btrMgr_MapDeviceTypeFromCore(lstBtrCoreListOfSDevices.devices[i].enDeviceType);
                 lpstBtrMgrSDevice->m_isPairedDevice = btrMgr_GetDevPaired(lstBtrCoreListOfSDevices.devices[i].tDeviceId);
                 lpstBtrMgrSDevice->m_ui32DevClassBtSpec = lstBtrCoreListOfSDevices.devices[i].ui32DevClassBtSpec;
@@ -4914,6 +4916,7 @@ BTRMGR_PairDevice (
     unsigned char           ui8isDevicePaired   = 0;
     enBTRCoreDeviceType     lenBTRCoreDevTy     = enBTRCoreSpeakers;
     enBTRCoreDeviceClass    lenBTRCoreDevCl     = enBTRCore_DC_Unknown;
+    eBTRMgrRet              lenBtrMgrRet        = eBTRMgrFailure;
     int                     j;
     gboolean                bIsPS4 = FALSE;
 
@@ -5045,7 +5048,7 @@ BTRMGR_PairDevice (
         }
     }
     //Inside this function there is a failure logs so, did not any failures logs here.
-    btrMgr_GetDeviceDetails(ahBTRMgrDevHdl,&stDeviceInfo);
+    lenBtrMgrRet = btrMgr_GetDeviceDetails(ahBTRMgrDevHdl,&stDeviceInfo);
 
     BTRMGR_GetPairedDevices (aui8AdapterIdx, &gListOfPairedDevices);
     for (j = 0; j <= gListOfPairedDevices.m_numOfDevices; j++) {
@@ -5095,7 +5098,6 @@ BTRMGR_PairDevice (
 
     if(lenBTRCoreDevTy == enBTRCoreHID) {
         if(!ui8isDevicePaired) {
-            unsigned char ui8IgnorePairFaildMsg = 0;
 
             if(bIsPS4) {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_COMPLETE;
@@ -5104,25 +5106,20 @@ BTRMGR_PairDevice (
             } else {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
                 lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
-
-                // Xbox gen4 firmware 5.9 is not supported in bluetooth 5.0 and 4.9
-                if (BTRCORE_XBOX_VENDOR_ID == stDeviceInfo.ui32ModaliasVendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == stDeviceInfo.ui32ModaliasProductId &&
-                        BTRCORE_XBOX_GEN4_DEF_FIRMWARE == stDeviceInfo.ui32ModaliasDeviceId ) {
-                    char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
-                    if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
-                        BTRMGRLOG_INFO ("Failed to pair due to unsupported device\n");
-                        ui8IgnorePairFaildMsg = 1; // As per the requirement we have to send only unsupported event for incompatibility devices
-                    }
-                }
             }
 
-            if (gfpcBBTRMgrEventOut && !ui8IgnorePairFaildMsg ) {
+            if (gfpcBBTRMgrEventOut) {
                 gfpcBBTRMgrEventOut(lstEventMessage);
             }
-            //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
-            BTRMGRLOG_ERROR ("Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X\n",
-            stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
-            stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+
+            BTRMGRLOG_INFO("Get device details status %u\n", lenBtrMgrRet);
+            if(lenBtrMgrRet == eBTRMgrSuccess) {
+                //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
+                BTRMGRLOG_ERROR ("Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X\n",
+                stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
+                stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+            }
+
             BTRMGRLOG_ERROR ("pairing failed device MAC %s\n",stDeviceInfo.pcDeviceAddress);
             ghBTRMgrDevHdlLastPaired = ahBTRMgrDevHdl;
             btrMgr_SetLastPairedDeviceStatusHoldOffTimer();
@@ -5952,6 +5949,87 @@ BTRMGR_GetDeviceBatteryLevel (
 }
 #ifndef LE_MODE
 BTRMGR_Result_t
+BTRMGR_ConnectGamepads_StartUp (
+    unsigned char                   aui8AdapterIdx,
+    BTRMGR_DeviceOperationType_t    aenBTRMgrDevConT
+) {
+    BTRMGR_Result_t           lenBtrMgrResult = BTRMGR_RESULT_SUCCESS;
+    int                       auth;
+    stBTRCoreDevStatusCBInfo  stRecreatedEvent = { 0 };
+    BTRMGR_EventMessage_t     lstEventMessage;
+
+    char lcPowerState[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
+    BTRMGR_SysDiagChar_t lpcPowerString = BTRMGR_SYS_DIAG_POWERSTATE;
+
+    if (eBTRMgrSuccess == BTRMGR_SD_GetData(ghBTRMgrSdHdl, lpcPowerString, lcPowerState)) {
+        if(strncmp(lcPowerState, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON) != 0))
+        {
+            BTRMGRLOG_ERROR("Power state is %s no need to try connecting device as it will connect once ON\n", lcPowerState);
+            return BTRMGR_RESULT_GENERIC_FAILURE;
+        }
+        else
+        {
+            BTRMGRLOG_INFO("Power state is ON\n");
+        }
+    }
+    else
+    {
+        BTRMGRLOG_ERROR("Could not get power state\n");
+    }
+
+    BTRMGR_GetPairedDevices (aui8AdapterIdx, &gListOfPairedDevices);
+    for (int i = 0; i < gListOfPairedDevices.m_numOfDevices; i++)
+    {
+        stBTRCoreBTDevice stDeviceInfo = { 0 };
+        btrMgr_GetDeviceDetails(gListOfPairedDevices.m_deviceProperty[i].m_deviceHandle, &stDeviceInfo);
+        if (stDeviceInfo.bDeviceConnected
+        && (gListOfPairedDevices.m_deviceProperty[i].m_deviceType == BTRMGR_DEVICE_TYPE_HID
+        || gListOfPairedDevices.m_deviceProperty[i].m_deviceType ==BTRMGR_DEVICE_TYPE_HID_GAMEPAD)
+        && (!btrMgr_IsDeviceRdkRcu(&gListOfPairedDevices.m_deviceProperty[i].m_serviceInfo, stDeviceInfo.ui16DevAppearanceBleSpec)))
+        {
+            strncpy(stRecreatedEvent.deviceName, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
+            strncpy(stRecreatedEvent.deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
+            stRecreatedEvent.deviceId = stDeviceInfo.tDeviceId;
+            stRecreatedEvent.eDeviceClass = stDeviceInfo.enDeviceType;
+            stRecreatedEvent.eDeviceType = stDeviceInfo.enDeviceType;
+            stRecreatedEvent.isPaired = 1;
+            stRecreatedEvent.ui32VendorId = stDeviceInfo.ui32ModaliasVendorId;
+            stRecreatedEvent.ui32ProductId = stDeviceInfo.ui32ModaliasProductId;
+            stRecreatedEvent.ui32DeviceId = stDeviceInfo.ui32ModaliasDeviceId;
+            stRecreatedEvent.ui16DevAppearanceBleSpec = stDeviceInfo.ui16DevAppearanceBleSpec;
+            stRecreatedEvent.eDevicePrevState = enBTRCoreDevStPaired;
+            stRecreatedEvent.eDeviceCurrState = enBTRCoreDevStConnected;
+
+
+            //recreate event that would have been received from the connectCb
+            btrMgr_IncomingConnectionAuthentication(&stRecreatedEvent, &auth);
+
+            if (!auth)
+                continue;
+
+            btrMgr_MapDevstatusInfoToEventInfo ((void *)&stRecreatedEvent, &lstEventMessage, BTRMGR_EVENT_DEVICE_FOUND);
+            lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
+            btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
+            BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
+
+            BTRMGRLOG_DEBUG("Posting Device Found Event ..\n");
+
+            if (gbGamepadStandbyMode && ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
+                (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)))
+            {
+                BTRMGRLOG_WARN("Device is in standby mode, we won't post to the upper layers if a device is found\n");
+                continue;
+            }
+            if (gfpcBBTRMgrEventOut) {
+                gfpcBBTRMgrEventOut(lstEventMessage);
+            }
+        }
+    }
+
+    return lenBtrMgrResult;
+}
+
+BTRMGR_Result_t
 BTRMGR_StartAudioStreamingOut_StartUp (
     unsigned char                   aui8AdapterIdx,
     BTRMGR_DeviceOperationType_t    aenBTRMgrDevConT
@@ -5966,9 +6044,8 @@ BTRMGR_StartAudioStreamingOut_StartUp (
 
     BTRMGR_PersistentData_t lstPersistentData;
     BTRMgrDeviceHandle      lDeviceHandle;
-
     BTRMGR_Result_t         lenBtrMgrResult = BTRMGR_RESULT_SUCCESS;
-#ifdef AUTO_CONNECT_ENABLED
+#ifdef AUTO_CONNECT_ENABLED    
     enBTRCoreRet            lenBtrCoreRet = enBTRCoreSuccess;
     int                     api32ConnInAuthResp = 1;
     gboolean                lbSecondAttempt = false;
@@ -5978,6 +6055,26 @@ BTRMGR_StartAudioStreamingOut_StartUp (
         lbSecondAttempt = true;
     }
 #endif //AUTO_CONNECT_ENABLED
+
+    //get power state as we do not need to connect if the power state is not ON and power callback will always be registered
+    char lcPowerState[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
+    BTRMGR_SysDiagChar_t lpcPowerString = BTRMGR_SYS_DIAG_POWERSTATE;
+
+    if (eBTRMgrSuccess == BTRMGR_SD_GetData(ghBTRMgrSdHdl, lpcPowerString, lcPowerState)) {
+        if(strncmp(lcPowerState, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON) != 0))
+        {
+            BTRMGRLOG_ERROR("Power state is %s no need to try connecting device as it will connect once ON\n", lcPowerState);
+            return BTRMGR_RESULT_GENERIC_FAILURE;
+        }
+        else
+        {
+            BTRMGRLOG_INFO("Power state is ON\n");
+        }
+    }
+    else
+    {
+        BTRMGRLOG_ERROR("Could not get power state\n");
+    }
 
     gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
     if (BTRMgr_PI_GetAllProfiles(ghBTRMgrPiHdl, &lstPersistentData) == eBTRMgrFailure) {
@@ -5998,21 +6095,17 @@ BTRMGR_StartAudioStreamingOut_StartUp (
 
         for (i32ProfileIdx = 0; i32ProfileIdx < numOfProfiles; i32ProfileIdx++) {
             deviceCount = lstPersistentData.profileList[i32ProfileIdx].numOfDevices;
-	    BTRMGRLOG_INFO("i32ProfileIdx = %d, deviceCount = %d\n", i32ProfileIdx, deviceCount);
 
             for (i32DeviceIdx = 0; i32DeviceIdx < deviceCount ; i32DeviceIdx++) {
                 lDeviceHandle   = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].deviceId;
                 isConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].isConnected;
                 lastConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].lastConnected;
-		BTRMGRLOG_INFO("lDeviceHandle = %llu, isConnected = %d, lastConnected = %d\n", lDeviceHandle, isConnected, lastConnected);
 
                 if ((lastConnected || isConnected) && lDeviceHandle) {
-		    BTRMGRLOG_INFO("profileId: %s\n", lstPersistentData.profileList[i32ProfileIdx].profileId);
                     if(strcmp(lstPersistentData.profileList[i32ProfileIdx].profileId, BTRMGR_A2DP_SINK_PROFILE_ID) == 0) {
                         char                   lPropValue[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
                         BTRMGR_SysDiagChar_t   lenDiagElement = BTRMGR_SYS_DIAG_POWERSTATE;
 
-			BTRMGRLOG_INFO("BTRMGR_SD_GetData is going to get called with PowerState\n");
                         if (eBTRMgrSuccess != BTRMGR_SD_GetData(ghBTRMgrSdHdl, lenDiagElement, lPropValue)) {
                             gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
                             BTRMGRLOG_ERROR("Could not get diagnostic data\n");
@@ -6020,11 +6113,11 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                         }
 #ifdef AUTO_CONNECT_ENABLED
                         //Before automatically starting audio, we should check if the device is connectable and then ask the upper layers
-                        unsigned int ui32sleepTimeOut = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS;
-                        unsigned int ui32confirmIdx = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS + 1;
+                        unsigned int ui32sleepTimeOut = 2;
+                        unsigned int ui32confirmIdx = 2;
 
                         do {
-                            unsigned int ui32sleepIdx = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS;
+                            unsigned int ui32sleepIdx = 1;
                             do {
                                 sleep(ui32sleepTimeOut);
                                 lenBtrCoreRet = BTRCore_IsDeviceConnectable(ghBTRCoreHdl, lDeviceHandle);
@@ -7164,10 +7257,9 @@ BTRMGR_StartSendingAudioFromFile(
         ui8FlushTimeoutMs = (outMTUSize >= BTMGR_LARGE_MTU_THRESHOLD) ? BTMGR_FLUSH_TIMEOUT_LARGE_MTU_INTERVAL_MS : BTMGR_FLUSH_TIMEOUT_INTERVAL_MS;
         if (BTRCore_SetDeviceDataAckTimeout(ghBTRCoreHdl, ui8FlushTimeoutMs) != enBTRCoreSuccess) {
             BTRMGRLOG_WARN ("Failed to set timeout for Audio drop. EXPECT AV SYNC ISSUES!\n");
-        }
-        return BTRMGR_RESULT_SUCCESS;
+        }        
     }
-    return BTRMGR_RESULT_GENERIC_FAILURE;
+    return BTRMGR_RESULT_SUCCESS;
 }
 BTRMGR_Result_t
 BTRMGR_StopSendingAudioFromFile (
@@ -7203,9 +7295,11 @@ BTRMGR_StopSendingAudioFromFile (
     gstBTRMgrStreamingInfo.hBTRMgrAcHdl = NULL;
     gstBTRMgrStreamingInfo.hBTRMgrSoHdl = NULL;
     ghBTRMgrDevHdlCurStreaming = 0;
-    ghBTRMGRDevHdlTestStreaming = 0;
-    return BTRMGR_RESULT_SUCCESS;
-
+    ghBTRMGRDevHdlTestStreaming = 0;	
+	if (lenBtrMgrRet == eBTRMgrSuccess)
+    	return BTRMGR_RESULT_SUCCESS;
+	else
+		return BTRMGR_RESULT_GENERIC_FAILURE;
 }
 
 BTRMGR_Result_t
@@ -8941,6 +9035,12 @@ static gboolean btrMgr_PostDeviceFoundEvtTimerCb (gpointer user_data)
     stBTRCoreDevStatusCBInfo *cb_data = (stBTRCoreDevStatusCBInfo*)user_data;
     BTRMGRLOG_DEBUG("Posting Device Found Event ..\n");
     btrMgr_MapDevstatusInfoToEventInfo ((void *)cb_data, &lstEventMessage, BTRMGR_EVENT_DEVICE_FOUND);
+    if (gbGamepadStandbyMode && ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
+        (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)))
+    {
+        BTRMGRLOG_WARN("Device is in standby mode, we won't post to the upper layers if a device is found\n");
+        return G_SOURCE_REMOVE;
+    }
     if (gfpcBBTRMgrEventOut) {
         gfpcBBTRMgrEventOut(lstEventMessage);
     }
@@ -9014,6 +9114,11 @@ btrMgr_ConnPwrStChangeTimerCb (
             if( BTRMGR_StartAudioStreamingOut_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_AUDIO_OUTPUT) != BTRMGR_RESULT_SUCCESS) {
                      BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_StartAudioStreamingOut_StartUp Failed!\n");
             }
+            if( BTRMGR_ConnectGamepads_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_HID) != BTRMGR_RESULT_SUCCESS) {
+                     BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_ConnectGamepads_StartUp Failed!\n");
+            }
+            //gamepads should connect back now
+            BTRCore_refreshLEActionListForGamepads(ghBTRCoreHdl);
     }
 
 #endif
@@ -9158,8 +9263,20 @@ btrMgr_SDStatusCb (
     stBTRMgrSysDiagStatus*  apstBtrMgrSdStatus,
     void*                   apvUserData
 ) {
-    eBTRMgrRet           leBtrMgrSdRet = eBTRMgrFailure;
+    eBTRMgrRet                      leBtrMgrSdRet = eBTRMgrSuccess;
+    
+    BTRMGR_Result_t                 lenBtrMgrResult   = BTRMGR_RESULT_SUCCESS;
+    enBTRCoreRet                    lenBtrCoreRet     = enBTRCoreSuccess;
+    unsigned short                  ui16LoopIdx       = 0;
+    BTRMGR_ConnectedDevicesList_t  *lstConnectedDevices;
+    unsigned int                    ui32sleepTimeOut = 1;
+    gboolean                        isRemoteDev = FALSE;
 
+    if(apstBtrMgrSdStatus == NULL)
+    {
+	BTRMGRLOG_ERROR("Invalid memory\n");
+        return eBTRMgrFailure;	
+    }
     if ((apstBtrMgrSdStatus != NULL) &&
 #ifndef LE_MODE
         (gIsAudOutStartupInProgress != BTRMGR_STARTUP_AUD_INPROGRESS) &&
@@ -9184,6 +9301,59 @@ btrMgr_SDStatusCb (
         if (gConnPwrStChangeTimeOutRef)
             leBtrMgrSdRet = eBTRMgrSuccess;
     }
+    
+    if ((apstBtrMgrSdStatus != NULL) && (apstBtrMgrSdStatus->enSysDiagChar == BTRMGR_SYS_DIAG_POWERSTATE))
+    {
+        if (!strncmp(apstBtrMgrSdStatus->pcSysDiagRes, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)))
+        {
+            BTRMGRLOG_INFO("Exited standby mode, allowing gamepads to connect\n");
+            gbGamepadStandbyMode = FALSE;
+        }
+        else if (!strncmp(apstBtrMgrSdStatus->pcSysDiagRes, BTRMGR_SYS_DIAG_PWRST_STANDBY, strlen(BTRMGR_SYS_DIAG_PWRST_STANDBY)) || 
+                 !strncmp(apstBtrMgrSdStatus->pcSysDiagRes, BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP, strlen(BTRMGR_SYS_DIAG_PWRST_STDBY_LIGHT_SLEEP)))
+        {
+            BTRMGRLOG_INFO("Entered standby mode, disconnecting gamepads\n");
+            gbGamepadStandbyMode = TRUE;
+            //stop any gamepads from connecting whilst in standby mode
+            BTRCore_clearLEActionListForGamepads(ghBTRCoreHdl);
+            //Disconnect all connected gamepads
+            lstConnectedDevices = malloc(sizeof(BTRMGR_ConnectedDevicesList_t));
+            if (!lstConnectedDevices)
+            {
+                BTRMGRLOG_ERROR("Run out memory for connected devices list\n");
+                return eBTRMgrFailure;
+            }
+            if ((lenBtrMgrResult = BTRMGR_GetConnectedDevices(0, lstConnectedDevices)) == BTRMGR_RESULT_SUCCESS) {
+                BTRMGRLOG_DEBUG ("Connected Devices = %d\n", lstConnectedDevices->m_numOfDevices);
+
+                for (ui16LoopIdx = 0; ui16LoopIdx < lstConnectedDevices->m_numOfDevices; ui16LoopIdx++) {
+                    unsigned int            ui32confirmIdx  = 2;
+                    enBTRCoreDeviceType     lenBtrCoreDevTy = enBTRCoreUnknown;
+                    enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
+                    isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_serviceInfo, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
+                    BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
+
+                    if (!isRemoteDev && ((lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
+                    (lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)))
+                    {
+                        if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
+                            BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                        }
+
+                        do {
+                            unsigned int ui32sleepIdx = 2;
+
+                            do {
+                                sleep(ui32sleepTimeOut);
+                                lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
+                            } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
+                        } while (--ui32confirmIdx);
+                    }
+                }
+            }
+            free(lstConnectedDevices);
+        } 
+    }
 
     return leBtrMgrSdRet;
 }
@@ -9192,6 +9362,7 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
 {
     BTRMGR_EventMessage_t lstEventMessage;
     MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+
     lstEventMessage.m_adapterIndex = 0;
     lstEventMessage.m_eventType    = BTRMGR_EVENT_RECEIVED_EXTERNAL_CONNECT_REQUEST;
     lstEventMessage.m_externalDevice.m_deviceHandle = ((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceId;
@@ -9288,23 +9459,15 @@ btrMgr_DeviceStatusCb (
 
             BTRMGRLOG_INFO ("btrMgr_DeviceStatusCb callaback v%04Xp%04Xd%04X\n", p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
 
-            if (BTRCORE_XBOX_VENDOR_ID == p_StatusCB->ui32VendorId && BTRCORE_XBOX_GEN4_PRODUCT_ID == p_StatusCB->ui32ProductId &&
-                    BTRCORE_XBOX_GEN4_DEF_FIRMWARE == p_StatusCB->ui32DeviceId) {
-                char version[BTRCORE_MAX_BT_VERSION_SIZE] = {0};
-                if((BTRCore_GetBluetoothVersion(version) == enBTRCoreSuccess) && (strncmp(version,BTCORE_BLUETOOTH_VERSION_5P2,BTRCORE_MAX_BT_VERSION_SIZE-1))) {
-                    if (p_StatusCB->eDeviceCurrState != enBTRCoreDevStUnsupported) {
-                        BTRMGRLOG_INFO ("Ignored notification to UI for incompatible device v%04Xp%04Xd%04X\n",
-                        p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
+            if(BTRCore_IsUnsupportedGamepad(p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId)) {
+                if (p_StatusCB->eDeviceCurrState != enBTRCoreDevStUnsupported) {
+                    BTRMGRLOG_INFO ("Ignored notification to UI for incompatible device v%04Xp%04Xd%04X\n",
+                    p_StatusCB->ui32VendorId, p_StatusCB->ui32ProductId, p_StatusCB->ui32DeviceId);
 
-                        return lenBtrCoreRet;
-                    }
-                }
-                else {
-                    BTRMGRLOG_INFO ("Failed to get BT version\n");
+                    return lenBtrCoreRet;
                 }
             }
         }
- 
         switch (p_StatusCB->eDeviceCurrState) {
         case enBTRCoreDevStPaired:
             /* Post this event only for HID Devices and Audio-In Devices */
@@ -9414,7 +9577,8 @@ btrMgr_DeviceStatusCb (
 #ifdef AUTO_CONNECT_ENABLED
                         BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
                         if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
-                            (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState) &&
+                            (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState ||
+                             enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
                             int auth = 0;
@@ -10228,12 +10392,6 @@ btrMgr_ConnectionInAuthenticationCb (
 #ifdef AUTO_CONNECT_ENABLED
         if ((btrMgr_GetDevPaired(apstConnCbInfo->stKnownDevice.tDeviceId))
              && ghBTRMgrDevHdlCurStreaming == 0 ) {
-            if (apstConnCbInfo->stKnownDevice.tDeviceId == ghBTRMgrDevHdlStreamStartUp) {
-                BTRMGRLOG_INFO("Pairing/Connection in progres for this audio device, so accepting the connection\n");
-                *api32ConnInAuthResp = 1;
-                btrMgr_PostCheckDiscoveryStatus (lui8AdapterIdx, lBtrMgrDevType);
-                return lenBtrCoreRet;
-            }
 #else
         if ((btrMgr_GetDevPaired(apstConnCbInfo->stKnownDevice.tDeviceId))
              && ghBTRMgrDevHdlCurStreaming == 0 &&
@@ -10328,7 +10486,8 @@ btrMgr_ConnectionInAuthenticationCb (
             (BTRMGR_XBOX_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_XBOX_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_NINTENDO_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_NINTENDO_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_XBOX_ADAPTIVE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ADAPTIVE_PRODUCT_ID == ui32MProductId))) &&
-            isDeinitInProgress != TRUE) {
+            isDeinitInProgress != TRUE &&
+            !gbGamepadStandbyMode) {
 
             if (apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlPairingInProgress &&
                 apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlConnInProgress) {
@@ -10389,10 +10548,13 @@ btrMgr_ConnectionInAuthenticationCb (
         else {
             BTRMGRLOG_ERROR ("Incoming Connection denied\n");
             *api32ConnInAuthResp = 0;
-            if (ghBTRMgrDevHdlLastDisconnected == apstConnCbInfo->stKnownDevice.tDeviceId) {
-                BTRMGRLOG_INFO("Restarting the timer to clear the disconnection status\n");
-                btrMgr_ClearDisconnectStatusHoldOffTimer();
-                btrMgr_SetDisconnectStatusHoldOffTimer();
+            if (!gbGamepadStandbyMode)
+            {
+                if (ghBTRMgrDevHdlLastDisconnected == apstConnCbInfo->stKnownDevice.tDeviceId) {
+                    BTRMGRLOG_INFO("Restarting the timer to clear the disconnection status\n");
+                    btrMgr_ClearDisconnectStatusHoldOffTimer();
+                    btrMgr_SetDisconnectStatusHoldOffTimer();
+                }
             }
         }
     }
@@ -11058,6 +11220,10 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
 
     BTRMGRLOG_INFO ("mode_val: %d\n", mode_val);
 
+#ifdef LE_MODE
+    BTRMGR_SysDiagInfo(0, BTRMGR_UUID_PROVISION_STATUS, unitActStatus, BTRMGR_LE_OP_READ_VALUE);
+#endif
+
     if(unitActStatus[0] != '\0') {
         BTRMGRLOG_INFO ("unitActStatus: %d\n", atoi(unitActStatus));
     }
@@ -11065,9 +11231,6 @@ static gboolean btrMgr_CheckDeviceActivationStatus(gpointer user_data)
         BTRMGRLOG_INFO ("unitActStatus is NULL\n");
     }
 
-#ifdef LE_MODE
-    BTRMGR_SysDiagInfo(0, BTRMGR_UUID_PROVISION_STATUS, unitActStatus, BTRMGR_LE_OP_READ_VALUE);
-#endif
     if (((unitActStatus[0] != '\0') && (atoi(unitActStatus) == 1)) && (BTRMGR_MODE_OFF == mode_val)) {
 
         BTRMGRLOG_INFO("Device is Activated - gIsDeviceAdvertising - %d \n",gIsDeviceAdvertising);
