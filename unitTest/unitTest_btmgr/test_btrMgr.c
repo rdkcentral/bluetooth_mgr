@@ -385,7 +385,6 @@ enBTRCoreRet _mock_BTRCore_GetAdapterPower_Success(tBTRCoreHandle hBTRCore, cons
 
 enBTRCoreRet _mock_BTRCore_GetAdapterPower_Failure(tBTRCoreHandle hBTRCore, const char *pAdapterPath, unsigned char *pAdapterPower, int cmock_num_calls)
 {
-   
     return enBTRCoreFailure;
 }
 enBTRCoreRet _mock_BTRCore_RegisterMediaStatusCb_Success(tBTRCoreHandle hBTRCore, fPtr_BTRCore_MediaStatusCb afpcBBTRCoreMediaStatus, void *apUserData, int cmock_num_calls)
