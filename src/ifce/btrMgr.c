@@ -2752,7 +2752,6 @@ btrMgr_ConnectToDevice (
     int                 i32PairDevIdx       = 0;
     unsigned int        ui32retryIdx        = aui32ConnectRetryIdx + 1;
     enBTRCoreDeviceType lenBTRCoreDeviceType= enBTRCoreUnknown;
-    BOOLEAN lbtriggerConnectCompleteEvt     = FALSE;
 
     lenBtrMgrRet = btrMgr_PreCheckDiscoveryStatus(aui8AdapterIdx, connectAs);
 
