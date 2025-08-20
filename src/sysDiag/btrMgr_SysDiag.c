@@ -836,7 +836,7 @@ btrMgr_SysDiag_powerModeChangeCb (
                 gpstSDHandle->lstBtrMgrSysDiagStat.enSysDiagChar = BTRMGR_SYS_DIAG_POWERSTATE;
 
 
-                if (gpstSDHandle->_powerState != newState && (newState != POWER_STATE_STANDBY || newState == POWER_STATE_STANDBY_LIGHT_SLEEP || newState == POWER_STATE_STANDBY_DEEP_SLEEP)) {
+                if (gpstSDHandle->_powerState != newState && (newState == POWER_STATE_STANDBY || newState == POWER_STATE_STANDBY_LIGHT_SLEEP || newState == POWER_STATE_STANDBY_DEEP_SLEEP)) {
                     BTRMGRLOG_WARN("BTRMGR_SYS_DIAG_POWERSTATE - Device is being suspended: %s\n", gpstSDHandle->lstBtrMgrSysDiagStat.pcSysDiagRes);
 					if (gpstSDHandle->fpcBSdStatus) {
 						stBTRMgrSysDiagStatus   lstBtrMgrSysDiagStat;
