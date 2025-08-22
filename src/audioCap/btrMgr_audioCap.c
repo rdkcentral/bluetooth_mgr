@@ -231,7 +231,8 @@ btrMgr_AC_acmDataCapture_InTask (
         /* Process incoming events */
         {
             li64usTimeout = lui16msTimeout * G_TIME_SPAN_MILLISECOND;
-            if ((lpeBtrMgrAcmDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrAcmDataCapGAOpQueue, li64usTimeout)) != NULL) {
+            if ((pstBtrMgrAcHdl->pBtrMgrAcmDataCapGAOpQueue) &&
+                ((lpeBtrMgrAcmDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrAcmDataCapGAOpQueue, li64usTimeout)) != NULL)) {
                 leBtrMgrAcmDCCurOp = *((eBTRMgrACAcmDCOp*)lpeBtrMgrAcmDCOp);
                 g_free(lpeBtrMgrAcmDCOp);
                 lpeBtrMgrAcmDCOp = NULL;
@@ -1618,18 +1619,12 @@ gpointer btrMgr_AC_testDataCapture_InTask(gpointer user_data)
         /* Process incoming events */
         {
             li64usTimeout = lui16msTimeout * G_TIME_SPAN_MILLISECOND;
-            if (pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue != NULL)
-            {
-                if ((lpeBtrMgrTestDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue, li64usTimeout)) != NULL) {
-                    leBtrMgrTestDCCurOp = *((eBTRMgrACTestDCOp*)lpeBtrMgrTestDCOp);
-                    g_free(lpeBtrMgrTestDCOp);
-                    lpeBtrMgrTestDCOp = NULL;
-                    BTRMGRLOG_INFO ("g_async_queue_timeout_pop %d\n", leBtrMgrTestDCCurOp);
-                }
-            }
-            else
-            {
-                leBtrMgrTestDCCurOp = eBTRMgrACTestDCExit;
+            if ((pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue) &&
+               ((lpeBtrMgrTestDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue, li64usTimeout)) != NULL)) {
+                leBtrMgrTestDCCurOp = *((eBTRMgrACTestDCOp*)lpeBtrMgrTestDCOp);
+                g_free(lpeBtrMgrTestDCOp);
+                lpeBtrMgrTestDCOp = NULL;
+                BTRMGRLOG_INFO ("g_async_queue_timeout_pop %d\n", leBtrMgrTestDCCurOp);
             }
         }
 
