@@ -186,7 +186,7 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlConnInProgress = 0;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 #endif
-static gboolean                         isDeinitInProgress = FALSE;
+gboolean                                isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrBgDiscoveryHdl;
@@ -4800,6 +4800,11 @@ BTRMGR_GetDiscoveredDevices_Internal (
     BTRMGR_DeviceType_t         lenBtrMgrDevType  = BTRMGR_DEVICE_TYPE_UNKNOWN;
     int i = 0;
     int j = 0;
+
+    if (isDeinitInProgress) {
+        BTRMGRLOG_ERROR ("Process shutdown in progress, So not able read the list of discovered devices ...\n");
+        return BTRMGR_RESULT_GENERIC_FAILURE;
+    }
 
     if (!ghBTRCoreHdl) {
         BTRMGRLOG_ERROR ("BTRCore is not Inited\n");

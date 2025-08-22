@@ -65,6 +65,7 @@ extern void *gpvMainLoop;
 extern void *gpvMainLoopThread;
 extern tBTRCoreHandle ghBTRCoreHdl;
 extern tBTRMgrPIHdl ghBTRMgrPiHdl;
+extern bool isDeinitInProgress;
 extern stBTRCoreListAdapters gListOfAdapters;
 extern BTRMGR_PairedDevicesList_t gListOfPairedDevices;
 extern BTRMGR_DiscoveredDevicesList_t gListOfDiscoveredDevices;
@@ -5291,6 +5292,7 @@ void test_BTRMGR_GetDiscoveredDevices_Internal_InitializationFailure(void)
 {
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     unsigned char adapterIndex = 0;
+    isDeinitInProgress = false;
 
     // Mocking BTRCore not initialized scenario
     ghBTRCoreHdl = NULL; // Assume global handler is null or set through a mock function
@@ -5303,6 +5305,7 @@ void test_BTRMGR_GetDiscoveredDevices_Internal_InitializationFailure(void)
 void test_BTRMGR_GetDiscoveredDevices_Internal_InvalidInput(void)
 {
     unsigned char adapterIndex = 255; // Invalid adapter index
+    isDeinitInProgress = false;
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     gListOfAdapters.number_of_adapters = 1;
     // Mock valid initialization
@@ -5316,6 +5319,7 @@ void test_BTRMGR_GetDiscoveredDevices_Internal_InvalidInput(void)
 void test_BTRMGR_GetDiscoveredDevices_Internal_NoDevicesFound(void)
 {
     unsigned char adapterIndex = 0;
+    isDeinitInProgress = false;
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     stBTRCoreScannedDevicesCount lstBtrCoreListOfSDevices = {0};
     gListOfAdapters.number_of_adapters = 1;
