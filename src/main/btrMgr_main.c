@@ -49,7 +49,8 @@
 
 static bool gbExitBTRMgr = false;
 
-
+#define BT_MAX_HCICONFIG_OUTPUT_SIZE    1024
+#define BT_HCI0_TIMEOUT 30
 static void
 btrMgr_SignalHandler (
     int i32SignalNumber
@@ -64,6 +65,35 @@ btrMgr_SignalHandler (
         gbExitBTRMgr = true;
 }
 
+static unsigned char btrMgr_systemReady() {
+
+    char output[BT_MAX_HCICONFIG_OUTPUT_SIZE] = {0};
+    FILE* fp;
+    int output_length = 0;
+
+    // Execute hciconfig -a command and capture its output
+    fp = popen("hciconfig hci0", "r");
+    if (fp == NULL) {
+            printf("Failed to execute hciconfig\n");
+            return -1;
+    }
+
+    output_length = fread(output, sizeof(char), BT_MAX_HCICONFIG_OUTPUT_SIZE - 1, fp);
+    output[output_length] = '\0';
+    pclose(fp);
+
+    if (strstr(output, "UP RUNNING"))
+    {
+        printf("Hci0 is up\n");
+        return 1;
+    }
+    else 
+    {
+        printf("Hci0 is not yet up\n");
+        return 0;
+    }
+    return 0;
+}
 
 int
 main (
@@ -77,6 +107,18 @@ main (
     BTRMGR_Result_t lenBtrMgrSoResult   = BTRMGR_RESULT_SUCCESS;
 #endif
 
+    //verify that the hci interface is up or fail after 30 seconds
+    unsigned char timeout = 0;
+    while (!btrMgr_systemReady() && timeout < BT_HCI0_TIMEOUT)
+    {
+        timeout++;
+        sleep(1);
+    }
+    if (timeout == BT_HCI0_TIMEOUT)
+    {
+        printf("HCI is not up, btmgr will most likely fail to start\n");
+    }
+    
     if ((lenBtrMgrResult = BTRMGR_Init()) == BTRMGR_RESULT_SUCCESS) {
 
         signal(SIGTERM, btrMgr_SignalHandler);
