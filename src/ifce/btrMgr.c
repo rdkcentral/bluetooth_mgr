@@ -5555,20 +5555,21 @@ BTRMGR_DisconnectFromDevice (
 
             if (lenBTRCoreDevTy == enBTRCoreLE) {
                 gIsLeDeviceConnected = 0;
-            }
-            else if ((lenBTRCoreDevTy == enBTRCoreSpeakers) || (lenBTRCoreDevTy == enBTRCoreHeadSet)) {
-                btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
-                ghBTRMgrDevHdlLastConnected = 0;
-            }
-            else if ((lenBTRCoreDevTy == enBTRCoreMobileAudioIn) || (lenBTRCoreDevTy == enBTRCorePCAudioIn)) {
-                btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
-                ghBTRMgrDevHdlLastConnected = 0;
-            }
-            else if (lenBTRCoreDevTy == enBTRCoreHID) {
-                btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
-            }
-            else {
-                btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
+            } else {
+                gIsUserInitiated = 0;
+                if ((lenBTRCoreDevTy == enBTRCoreSpeakers) ||
+                    (lenBTRCoreDevTy == enBTRCoreHeadSet) ||
+                    (lenBTRCoreDevTy == enBTRCoreMobileAudioIn) ||
+                    (lenBTRCoreDevTy == enBTRCorePCAudioIn)) {
+                    btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
+                    ghBTRMgrDevHdlLastConnected = 0;
+                }
+                else if (lenBTRCoreDevTy == enBTRCoreHID) {
+                    btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
+                }
+                else {
+                    btrMgr_SetDevConnected(ahBTRMgrDevHdl, 0);
+                }
             }
 
             if ((lenBTRCoreDevTy == enBTRCoreSpeakers) || (lenBTRCoreDevTy == enBTRCoreHeadSet)) {
