@@ -9654,8 +9654,16 @@ btrMgr_DeviceStatusCb (
                         /*Skipped posting the connection completion event here if the device tries to
                         *auto-connect post disconnection from UI. Based on the connect wrapper initiated
                         *from UI, the connection completion event will be posted*/
-                        if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected)
+                        if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected) {
+                            BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
+                            /* Disconnect gamepad LE */
+                            if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
+                                int auth = 0;
+                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
+                                BTRMGRLOG_INFO("auth: %d\n", auth);
+                            }
                         break;
+                        }
                         /* After connection failure, get confirmation from the UI to connect back.
 			 * For Classsic HID devices ,Connect method will be triggered from UI based
 			 * on the connect request event on connection authorization process, so not
