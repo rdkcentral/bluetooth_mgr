@@ -2391,7 +2391,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                    testDiscoverySuccessLEScan,
                                     testDiscoverySuccessAudioOutScan,
                                    testDiscoverySuccessAllDevicesScan,
-                                   //testDiscoverySuccessHIDScan,
+                                   testDiscoverySuccessHIDScan,
                                 // // testDiscoveryStartFail //incorrect behaviour
                                 // // testDiscoveryStopFail //incorrect behaviour
                                 testDiscoveryStartWhileInProgress,
