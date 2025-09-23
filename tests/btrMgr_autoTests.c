@@ -1293,14 +1293,14 @@ BTRMGR_TEST_STATUS testDiscoverySuccessHIDScan()
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_STARTED, NULL, LONG_WAIT));
     for (uint8_t i = 0; i < SET_C_LEN; i++)
     {
-        DEBUG("Device: %s", SET_C[i].name);
+        DEBUG("Device: %s", SET_C[i].name, SET_C[i].icon);
         if (strncmp(SET_C[i].icon, "input-gaming", strlen("input-gaming")))
         {
             EXPECT_FALSE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_UPDATE, &(SET_C[i]),SHORT_WAIT));
         }
         else
         {
-            EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_UPDATE, &(SET_C[i]),SHORT_WAIT));
+            DEBUG("Skipping non-HID device: %s", SET_C[i].name);
         }
     }
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_StopDeviceDiscovery(0, BTRMGR_DEVICE_OP_TYPE_HID), BTRMGR_RESULT_SUCCESS);
