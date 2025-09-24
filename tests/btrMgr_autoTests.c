@@ -1294,7 +1294,7 @@ BTRMGR_TEST_STATUS testDiscoverySuccessHIDScan()
     for (uint8_t i = 0; i < SET_C_LEN; i++)
     {
         DEBUG("Device: %s", SET_C[i].name);
-        DEBUG("Device: 5s", SET_C[i].icon);
+        DEBUG("Device: %s", SET_C[i].icon);
         if (strncmp(SET_C[i].icon, "input-gaming", strlen("input-gaming")))
         {
             EXPECT_FALSE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_UPDATE, &(SET_C[i]),SHORT_WAIT));
