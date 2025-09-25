@@ -2403,7 +2403,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testBtmgrShowsNoPairedDevices,
                                 testBtmgrShowsAllPairedDevices,
                                 testBtmgrCheckDeviceInfo,
-                                //testPairHeadset,
+                                testPairHeadset,
                                 //testPairHeadphones,
                                 //testPairLuna,
                                 //testPairXboxElite,
