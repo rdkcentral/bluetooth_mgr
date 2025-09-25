@@ -1287,7 +1287,7 @@ BTRMGR_TEST_STATUS testDiscoverySuccessAllDevicesScan()
 BTRMGR_TEST_STATUS testDiscoverySuccessHIDScan()
 {
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
-    setEnvironmentDevices(SET_C, SET_C_LEN);
+    setEnvironmentDevices(SET_C_HID_NO_RCU, SET_C_HID_NO_RCU_LEN);
     INFO(">>> Discovery started <<<<");
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_StartDeviceDiscovery(0, BTRMGR_DEVICE_OP_TYPE_HID), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StartDiscovery", NULL, LONG_WAIT));
