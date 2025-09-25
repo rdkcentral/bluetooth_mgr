@@ -1297,7 +1297,7 @@ BTRMGR_TEST_STATUS testDiscoverySuccessHIDScan()
         INFO("Device: %s", SET_C[i].icon);
         if (strncmp(SET_C[i].icon, "input-gaming", strlen("input-gaming")))
         {
-            INFO("Skipping non-HID device: %s", SET_C[i].name);
+            EXPECT_FALSE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_UPDATE, &(SET_C[i]),SHORT_WAIT));
         }
         else
         {
