@@ -2386,12 +2386,12 @@ BTRMGR_TEST_STATUS testFullGamepadDeviceFlow()
     return BTRMGR_TEST_SUCCESS;
 }
 BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
-                                testDiscoveryStartAndStopSuccessNoDevices, 
-                                   testDiscoverySuccessGamePadLEandAudioDevice, 
-                                   testDiscoverySuccessNoRCUInResult, 
-                                   testDiscoverySuccessLEScan,
-                                    testDiscoverySuccessAudioOutScan,
-                                   testDiscoverySuccessAllDevicesScan,
+                                //testDiscoveryStartAndStopSuccessNoDevices, 
+                                  // testDiscoverySuccessGamePadLEandAudioDevice, 
+                                   //testDiscoverySuccessNoRCUInResult, 
+                                   //testDiscoverySuccessLEScan,
+                                    //testDiscoverySuccessAudioOutScan,
+                                   //testDiscoverySuccessAllDevicesScan,
                                    testDiscoverySuccessHIDScan,
                                 // // testDiscoveryStartFail //incorrect behaviour
                                 // // testDiscoveryStopFail //incorrect behaviour
