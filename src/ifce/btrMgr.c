@@ -3827,7 +3827,7 @@ BTRMGR_Init (
         b_rdk_logger_enabled = 1;
     }
 #endif
-    isDeinitInProgress = FASLE;
+    isDeinitInProgress = FALSE;
 
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
