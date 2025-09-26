@@ -1474,6 +1474,7 @@ BTRMGR_TEST_STATUS testPairLuna()
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StopDiscovery", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_COMPLETE, NULL, LONG_WAIT));
 
+    isDeinitInProgress = false;
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_GetDiscoveredDevices(0, &discoveredDevices), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(CHECK_DISCOVERED_DEVICES_AGAINST_MOCK_DEVICES(SET_C_NO_RCU, SET_C_NO_RCU_LEN, discoveredDevices.m_deviceProperty, discoveredDevices.m_numOfDevices));
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_PairDevice(0, getDeviceIDFromMac(gamepad.address)), BTRMGR_RESULT_SUCCESS);
@@ -1508,7 +1509,7 @@ BTRMGR_TEST_STATUS testPairXboxElite()
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_StopDeviceDiscovery(0, BTRMGR_DEVICE_OP_TYPE_AUDIO_AND_HID), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StopDiscovery", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_COMPLETE, NULL, LONG_WAIT));
-
+    isDeinitInProgress = false;
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_GetDiscoveredDevices(0, &discoveredDevices), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(CHECK_DISCOVERED_DEVICES_AGAINST_MOCK_DEVICES(SET_C_NO_RCU, SET_C_NO_RCU_LEN, discoveredDevices.m_deviceProperty, discoveredDevices.m_numOfDevices));
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_PairDevice(0, getDeviceIDFromMac(gamepad.address)), BTRMGR_RESULT_SUCCESS);
@@ -2408,8 +2409,8 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testBtmgrCheckDeviceInfo,
                                 testPairHeadset,
                                 testPairHeadphones,
-                                //testPairLuna,
-                                //testPairXboxElite,
+                                testPairLuna,
+                                testPairXboxElite,
                                 //testPairWithoutStoppingDiscovery,
                                 testPairUndiscoveredDevice,
                                 testPairUndiscoveredDevice,
