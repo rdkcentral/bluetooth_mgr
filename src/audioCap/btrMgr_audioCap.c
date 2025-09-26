@@ -231,7 +231,8 @@ btrMgr_AC_acmDataCapture_InTask (
         /* Process incoming events */
         {
             li64usTimeout = lui16msTimeout * G_TIME_SPAN_MILLISECOND;
-            if ((lpeBtrMgrAcmDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrAcmDataCapGAOpQueue, li64usTimeout)) != NULL) {
+            if ((pstBtrMgrAcHdl->pBtrMgrAcmDataCapGAOpQueue) &&
+                ((lpeBtrMgrAcmDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrAcmDataCapGAOpQueue, li64usTimeout)) != NULL)) {
                 leBtrMgrAcmDCCurOp = *((eBTRMgrACAcmDCOp*)lpeBtrMgrAcmDCOp);
                 g_free(lpeBtrMgrAcmDCOp);
                 lpeBtrMgrAcmDCOp = NULL;
@@ -365,7 +366,6 @@ btrMgr_AC_acmDataCapture_InTask (
             }
             /* eBTRMgrACAcmDCUnknown - UNKNOWN */
             else if (leBtrMgrAcmDCCurOp == eBTRMgrACAcmDCUnknown) {
-                g_thread_yield();
             }
         }
 
@@ -400,7 +400,6 @@ btrMgr_AC_acmDataCapture_InTask (
             }
             /* eBTRMgrACAcmDCStop - STOP */
             else if (leBtrMgrAcmDCCurOp == eBTRMgrACAcmDCStop) {
-                g_thread_yield();
             }
             /* eBTRMgrACAcmDCPause - PAUSE */
             else if (leBtrMgrAcmDCCurOp == eBTRMgrACAcmDCPause) {
@@ -410,11 +409,9 @@ btrMgr_AC_acmDataCapture_InTask (
             }
             /* eBTRMgrACAcmDCExit - EXIT */
             else if (leBtrMgrAcmDCCurOp == eBTRMgrACAcmDCExit) {
-                g_thread_yield();
             }
             /* eBTRMgrACAcmDCUnknown - UNKNOWN */
             else if (leBtrMgrAcmDCCurOp == eBTRMgrACAcmDCUnknown) {
-                g_thread_yield();
             }
         }
 
@@ -1622,18 +1619,12 @@ gpointer btrMgr_AC_testDataCapture_InTask(gpointer user_data)
         /* Process incoming events */
         {
             li64usTimeout = lui16msTimeout * G_TIME_SPAN_MILLISECOND;
-            if (pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue != NULL)
-            {
-                if ((lpeBtrMgrTestDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue, li64usTimeout)) != NULL) {
-                    leBtrMgrTestDCCurOp = *((eBTRMgrACTestDCOp*)lpeBtrMgrTestDCOp);
-                    g_free(lpeBtrMgrTestDCOp);
-                    lpeBtrMgrTestDCOp = NULL;
-                    BTRMGRLOG_INFO ("g_async_queue_timeout_pop %d\n", leBtrMgrTestDCCurOp);
-                }
-            }
-            else
-            {
-                leBtrMgrTestDCCurOp = eBTRMgrACTestDCExit;
+            if ((pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue) &&
+               ((lpeBtrMgrTestDCOp = g_async_queue_timeout_pop(pstBtrMgrAcHdl->pBtrMgrTestDataCapGAOpQueue, li64usTimeout)) != NULL)) {
+                leBtrMgrTestDCCurOp = *((eBTRMgrACTestDCOp*)lpeBtrMgrTestDCOp);
+                g_free(lpeBtrMgrTestDCOp);
+                lpeBtrMgrTestDCOp = NULL;
+                BTRMGRLOG_INFO ("g_async_queue_timeout_pop %d\n", leBtrMgrTestDCCurOp);
             }
         }
 
@@ -1745,7 +1736,6 @@ gpointer btrMgr_AC_testDataCapture_InTask(gpointer user_data)
             }
             /* eBTRMgrACTestDCUnknown - UNKNOWN */
             else if (leBtrMgrTestDCCurOp == eBTRMgrACTestDCUnknown) {
-                g_thread_yield();
             }
         }
 
@@ -1779,7 +1769,6 @@ gpointer btrMgr_AC_testDataCapture_InTask(gpointer user_data)
             }
             /* eBTRMgrACTestDCStop - STOP */
             else if (leBtrMgrTestDCCurOp == eBTRMgrACTestDCStop) {
-                g_thread_yield();
             }
             /* eBTRMgrACTestDCPause - PAUSE */
             else if (leBtrMgrTestDCCurOp == eBTRMgrACTestDCPause) {
@@ -1789,11 +1778,9 @@ gpointer btrMgr_AC_testDataCapture_InTask(gpointer user_data)
             }
             /* eBTRMgrACTestDCExit - EXIT */
             else if (leBtrMgrTestDCCurOp == eBTRMgrACTestDCExit) {
-                g_thread_yield();
             }
             /* eBTRMgrACTestDCUnknown - UNKNOWN */
             else if (leBtrMgrTestDCCurOp == eBTRMgrACTestDCUnknown) {
-                g_thread_yield();
             }
         }
 

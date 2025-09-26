@@ -2185,7 +2185,6 @@ BTRMgr_BeginIARMMode (
         IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_RELEASE_DATA_PATH, btrMgr_ReleaseDataPath);
         IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_START_STREAMING_AUDIO_FROM_FILE,btrMgr_StartSendingAudioFromFile);
         IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_STOP_STREAMING_AUDIO_FROM_FILE,btrMgr_StopSendingAudioFromFile);
-        IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_STOP_STREAMING_AUDIO_FROM_FILE,btrMgr_StopSendingAudioFromFile);
         IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_SET_DEVICE_VOLUME_MUTE_INFO, btrMgr_SetDeviceVolumeMute);
         IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_GET_DEVICE_VOLUME_MUTE_INFO, btrMgr_GetDeviceVolumeMute);
         IARM_Bus_RegisterCall(BTRMGR_IARM_METHOD_SET_DEVICE_DELAY_INFO, btrMgr_SetDeviceDelay);
