@@ -2752,6 +2752,7 @@ btrMgr_ConnectToDevice (
     int                 i32PairDevIdx       = 0;
     unsigned int        ui32retryIdx        = aui32ConnectRetryIdx + 1;
     enBTRCoreDeviceType lenBTRCoreDeviceType= enBTRCoreUnknown;
+    BOOLEAN lbtriggerConnectCompleteEvt     = FALSE;
 
     lenBtrMgrRet = btrMgr_PreCheckDiscoveryStatus(aui8AdapterIdx, connectAs);
 
@@ -2775,7 +2776,8 @@ btrMgr_ConnectToDevice (
     case BTRMGR_DEVICE_OP_TYPE_LE:
         lenBTRCoreDeviceType = enBTRCoreLE;
         break;
-    case BTRMGR_DEVICE_OP_TYPE_HID:        
+    case BTRMGR_DEVICE_OP_TYPE_HID:
+        lbtriggerConnectCompleteEvt = btrMgr_IsDevConnected(ahBTRMgrDevHdl);	
         lenBTRCoreDeviceType = enBTRCoreHID;
         ghBTRMgrDevHdlConnInProgress = ahBTRMgrDevHdl;
         break;
@@ -2890,7 +2892,7 @@ btrMgr_ConnectToDevice (
                     BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
                     gIsUserInitiated = 0;
                     ghBTRMgrDevHdlConnInProgress = 0;
-                    
+                    if (lbtriggerConnectCompleteEvt) {        
                     BTRMGR_EventMessage_t lstEventMessage;
                     MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
 
@@ -2901,6 +2903,7 @@ btrMgr_ConnectToDevice (
                     if (gfpcBBTRMgrEventOut) {
                         gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
                     }
+		    }
                 }
                 else {
                     btrMgr_SetDevConnected(ahBTRMgrDevHdl, 1);
