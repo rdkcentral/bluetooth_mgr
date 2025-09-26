@@ -1287,9 +1287,7 @@ BTRMGR_TEST_STATUS testDiscoverySuccessAllDevicesScan()
 BTRMGR_TEST_STATUS testDiscoverySuccessHIDScan()
 {
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
-    // Setting the HID devices environment before discovering the HID device because there is no filter available to scan the HID devices only.
-    //In btrCore the HID filter will be considered as unknown and the devices will be segregated based on the appearance values & class.
-    setEnvironmentDevices(SET_C_HID_NO_RCU, SET_C_HID_NO_RCU_LEN);
+    setEnvironmentDevices(SET_C, SET_C_LEN);
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_StartDeviceDiscovery(0, BTRMGR_DEVICE_OP_TYPE_HID), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StartDiscovery", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_STARTED, NULL, LONG_WAIT));
