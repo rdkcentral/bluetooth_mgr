@@ -2411,7 +2411,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testPairHeadphones,
                                 testPairLuna,
                                 testPairXboxElite,
-                                //testPairWithoutStoppingDiscovery,
+                                testPairWithoutStoppingDiscovery,
                                 testPairUndiscoveredDevice,
                                 testPairUndiscoveredDevice,
                                 // // testPairTimeout // incorrect behaviour
