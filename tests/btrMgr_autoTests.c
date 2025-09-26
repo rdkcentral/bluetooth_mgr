@@ -182,6 +182,7 @@ uint8_t SET_C_LE_NO_RCU_LEN = 2;
 uint8_t SET_C_CLASSIC_NO_RCU_LEN = 3;
 uint8_t SET_C_HID_NO_RCU_LEN = 3;
 
+extern bool isDeinitInProgress;
 bool gIsBtmgrUp = false;
 GMainLoop       *gMainloop;
 GDBusConnection *gDbusEvtConn;
@@ -1436,6 +1437,7 @@ BTRMGR_TEST_STATUS testPairHeadset()
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StopDiscovery", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_COMPLETE, NULL, LONG_WAIT));
 
+    isDeinitInProgress = false;
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_GetDiscoveredDevices(0, &discoveredDevices), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(CHECK_DISCOVERED_DEVICES_AGAINST_MOCK_DEVICES(SET_C_NO_RCU, SET_C_NO_RCU_LEN, discoveredDevices.m_deviceProperty, discoveredDevices.m_numOfDevices));
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_PairDevice(0, getDeviceIDFromMac(headset.address)), BTRMGR_RESULT_SUCCESS);
