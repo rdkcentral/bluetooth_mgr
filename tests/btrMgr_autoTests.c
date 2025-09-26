@@ -2423,7 +2423,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testConnectNotPaired,
                                 testDisconnectLEGamepad,
                                 testDisconnectBREDRGamepad,
-                                //testDisconnectAudioDevice,
+                                testDisconnectAudioDevice,
                                 testDisconnectTimeout,
                                 testDisconnectNotPaired,
                                 testDisconnectFailed,
