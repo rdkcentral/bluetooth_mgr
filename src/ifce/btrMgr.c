@@ -3828,6 +3828,7 @@ BTRMGR_Init (
     }
 #endif
 
+    isDeinitInProgress = FALSE;
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
     MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
