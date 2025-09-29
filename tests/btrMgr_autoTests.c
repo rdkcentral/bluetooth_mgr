@@ -1797,7 +1797,7 @@ BTRMGR_TEST_STATUS testConnectAudioDevice()
     BLUETOOTH_MOCK_DEVICE deviceToConnect = WH1000XM4DEMO;
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_ConnectToDevice(0, getDeviceIDFromMac(deviceToConnect.address), BTRMGR_DEVICE_OP_TYPE_HID), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("Connect", NULL, LONG_WAIT));
-    EXPECT_FALSE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_CONNECTION_COMPLETE, NULL, SHORT_WAIT));
+    EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_CONNECTION_COMPLETE, NULL, SHORT_WAIT));
     BTRMGR_GetConnectedDevices(0, &connectedDev);
     EXPECT_TRUE(CHECK_CONNECTED_DEVICES_AGAINST_MOCK_DEVICES(NULL, 0, connectedDev.m_deviceProperty, connectedDev.m_numOfDevices));
     return BTRMGR_TEST_SUCCESS;
@@ -1894,7 +1894,7 @@ BTRMGR_TEST_STATUS testDisconnectAudioDevice()
     BLUETOOTH_MOCK_DEVICE deviceToConnect = WH1000XM4DEMO;
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_ConnectToDevice(0, getDeviceIDFromMac(deviceToConnect.address), BTRMGR_DEVICE_OP_TYPE_HID), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("Connect", NULL, LONG_WAIT));
-    EXPECT_FALSE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_CONNECTION_COMPLETE, NULL, SHORT_WAIT));
+    EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_CONNECTION_COMPLETE, NULL, SHORT_WAIT));
     BTRMGR_GetConnectedDevices(0, &connectedDev);
     EXPECT_TRUE(CHECK_CONNECTED_DEVICES_AGAINST_MOCK_DEVICES(NULL, 0, connectedDev.m_deviceProperty, connectedDev.m_numOfDevices));
     SLEEP(LONG_WAIT + 1);
@@ -2391,7 +2391,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                    testDiscoverySuccessLEScan,
                                     testDiscoverySuccessAudioOutScan,
                                    testDiscoverySuccessAllDevicesScan,
-                                   //testDiscoverySuccessHIDScan,
+                                   testDiscoverySuccessHIDScan,
                                 // // testDiscoveryStartFail //incorrect behaviour
                                 // // testDiscoveryStopFail //incorrect behaviour
                                 testDiscoveryStartWhileInProgress,
@@ -2399,15 +2399,15 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testBtmgrShowsNoPairedDevices,
                                 testBtmgrShowsAllPairedDevices,
                                 testBtmgrCheckDeviceInfo,
-                                //testPairHeadset,
-                                //testPairHeadphones,
-                                //testPairLuna,
-                                //testPairXboxElite,
-                                //testPairWithoutStoppingDiscovery,
+                                testPairHeadset,
+                                testPairHeadphones,
+                                testPairLuna,
+                                testPairXboxElite,
+                                testPairWithoutStoppingDiscovery,
                                 testPairUndiscoveredDevice,
                                 testPairUndiscoveredDevice,
                                 // // testPairTimeout // incorrect behaviour
-                                //testPairFailedAtBluez,
+                                testPairFailedAtBluez,
                                 testPairAlreadyPaired,
                                 testRemoveDevice,
                                 testRemoveAllDevices,
@@ -2422,7 +2422,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testConnectNotPaired,
                                 testDisconnectLEGamepad,
                                 testDisconnectBREDRGamepad,
-                                //testDisconnectAudioDevice,
+                                testDisconnectAudioDevice,
                                 testDisconnectTimeout,
                                 testDisconnectNotPaired,
                                 testDisconnectFailed,
