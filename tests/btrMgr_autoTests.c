@@ -2416,7 +2416,7 @@ BTMGR_TEST_FUNC L2_UNIT_TESTS[] = {
                                 testDeviceUnpairingFails,
                                 testConnectLEGamepad,
                                 testConnectBREDRGamepad,
-                                //testConnectAudioDevice,
+                                testConnectAudioDevice,
                                 testConnectTimeout,
                                 testConnectFailed,
                                 testConnectNotPaired,
