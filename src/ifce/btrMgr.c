@@ -9115,12 +9115,12 @@ btrMgr_ConnPwrStChangeTimerCb (
             if( BTRMGR_StartAudioStreamingOut_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_AUDIO_OUTPUT) != BTRMGR_RESULT_SUCCESS) {
                      BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_StartAudioStreamingOut_StartUp Failed!\n");
             }
-            if( BTRMGR_ConnectGamepads_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_HID) != BTRMGR_RESULT_SUCCESS) {
-                     BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_ConnectGamepads_StartUp Failed!\n");
-            }
-            //gamepads should connect back now
-            BTRCore_refreshLEActionListForGamepads(ghBTRCoreHdl);
+	}
+    if( BTRMGR_ConnectGamepads_StartUp(lui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_HID) != BTRMGR_RESULT_SUCCESS) {
+    	BTRMGRLOG_ERROR ("ConnPwrStChange - BTRMGR_ConnectGamepads_StartUp Failed!\n");
     }
+    //gamepads should connect back now
+    BTRCore_refreshLEActionListForGamepads(ghBTRCoreHdl);
 
 #endif
     return FALSE;
