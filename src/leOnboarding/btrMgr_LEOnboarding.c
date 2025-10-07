@@ -422,7 +422,7 @@ BTRMGR_LeWifi_CheckWifiConnSuccess (
 #ifdef BTRTEST_LE_ONBRDG_ENABLE
     DownloadData DwnLoc;
     char post_data[] = "{\"jsonrpc\":\"2.0\",\"id\":\"42\",\"method\": \"org.rdk.NetworkManager.GetConnectedSSID\"}";
-    if (MemDLAlloc(&DwnLoc, DEFAULT_DL_ALLOC) == 0) {
+    if (allocDowndLoadDataMem(&DwnLoc, DEFAULT_DL_ALLOC) == 0) {
         if (0 != getJsonRpc(post_data, &DwnLoc)) {
             BTRMGRLOG_ERROR("Failed to get connected SSID using JSON-RPC\n");
             return eBTRMgrFailure;
@@ -478,7 +478,7 @@ BTRMGR_LeWifi_ConnectToWifi (
     BTRMGRLOG_DEBUG("Wifi pwd is : %s\n", aPassword);
     BTRMGRLOG_DEBUG("Wifi sec mode is : %d\n", aSecurityMode);
 
-    if (MemDLAlloc(&DwnLoc, DEFAULT_DL_ALLOC) == 0) {
+    if (allocDowndLoadDataMem(&DwnLoc, DEFAULT_DL_ALLOC) == 0) {
         if (0 != getJsonRpc(post_data, &DwnLoc)) {
             BTRMGRLOG_ERROR("Failed to connect to Wi-Fi using JSON-RPC\n");
             return eBTRMgrFailure;
