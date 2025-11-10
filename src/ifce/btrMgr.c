@@ -4930,8 +4930,6 @@ BTRMGR_PairDevice (
         return BTRMGR_RESULT_INVALID_INPUT;
     }
 
-    btrMgr_PreCheckDiscoveryStatus(aui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_UNKNOWN);
-
     /* Update the Paired Device List */
     BTRMGR_GetPairedDevices (aui8AdapterIdx, &gListOfPairedDevices);
     if (1 == btrMgr_GetDevPaired(ahBTRMgrDevHdl)) {
@@ -4942,6 +4940,10 @@ BTRMGR_PairDevice (
     BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, ahBTRMgrDevHdl, &lenBTRCoreDevTy, &lenBTRCoreDevCl);
     BTRMGRLOG_INFO ("Status = %d\t Device Type = %d\t Device Class = %x\n", lenBtrCoreRet, lenBTRCoreDevTy, lenBTRCoreDevCl);
 
+	if (lenBTRCoreDevTy != enBTRCoreHID && lenBTRCoreDevTy != enBTRCoreAudioAndHID) {
+        btrMgr_PreCheckDiscoveryStatus(aui8AdapterIdx, BTRMGR_DEVICE_OP_TYPE_UNKNOWN);
+    }
+	
     if (!gIsHidGamePadEnabled && (lenBTRCoreDevCl == enBTRCore_DC_HID_GamePad)) {
         BTRMGRLOG_WARN ("BTR HID GamePad is currently Disabled\n");
        return BTRMGR_RESULT_GENERIC_FAILURE;
