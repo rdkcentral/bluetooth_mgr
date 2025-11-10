@@ -1555,7 +1555,7 @@ BTRMGR_TEST_STATUS testPairWithoutStoppingDiscovery()
     restartBtrMgr();
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     setEnvironmentDevices(SET_C, SET_C_LEN);
-    BLUETOOTH_MOCK_DEVICE gamepad = LUNA;
+    BLUETOOTH_MOCK_DEVICE headphones = AIRPODSGEN2;
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_StartDeviceDiscovery(0, BTRMGR_DEVICE_OP_TYPE_AUDIO_AND_HID), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StartDiscovery", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_DISCOVERY_STARTED, NULL, LONG_WAIT));
@@ -1573,12 +1573,12 @@ BTRMGR_TEST_STATUS testPairWithoutStoppingDiscovery()
 
     EXPECT_BTRMGRRET_RESPONSE(BTRMGR_GetDiscoveredDevices(0, &discoveredDevices), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(CHECK_DISCOVERED_DEVICES_AGAINST_MOCK_DEVICES(SET_C_NO_RCU, SET_C_NO_RCU_LEN, discoveredDevices.m_deviceProperty, discoveredDevices.m_numOfDevices));
-    EXPECT_BTRMGRRET_RESPONSE(BTRMGR_PairDevice(0, getDeviceIDFromMac(gamepad.address)), BTRMGR_RESULT_SUCCESS);
+    EXPECT_BTRMGRRET_RESPONSE(BTRMGR_PairDevice(0, getDeviceIDFromMac(headphones.address)), BTRMGR_RESULT_SUCCESS);
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("Pair", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BLUEZ_EVENT("StopDiscovery", NULL, LONG_WAIT));
     EXPECT_TRUE(EXPECT_AND_WAIT_BTMGR_EVENT(BTRMGR_EVENT_DEVICE_PAIRING_COMPLETE, NULL, LONG_WAIT));
     BTRMGR_GetPairedDevices(0, &pairedDevices);
-    CHECK_PAIRED_DEVICES_AGAINST_MOCK_DEVICES(&gamepad, 1, pairedDevices.m_deviceProperty, pairedDevices.m_numOfDevices);
+    CHECK_PAIRED_DEVICES_AGAINST_MOCK_DEVICES(&headphones, 1, pairedDevices.m_deviceProperty, pairedDevices.m_numOfDevices);
     return BTRMGR_TEST_SUCCESS;
 }
 
