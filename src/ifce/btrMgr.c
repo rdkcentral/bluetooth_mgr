@@ -9578,14 +9578,18 @@ btrMgr_DeviceStatusCb (
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID) ||
                              (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD)) {
 #ifdef AUTO_CONNECT_ENABLED
-                        BTRMGRLOG_DEBUG("HID Device Found ui16DevAppearanceBleSpec - %d \n",p_StatusCB->ui16DevAppearanceBleSpec);
-                        if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
+                        if (((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) ||
+                             ((p_StatusCB->ui32VendorId == BTRMGR_STADIA_VENDOR_ID) &&
+                              (p_StatusCB->ui32ProductId == BTRMGR_STADIA_PRODUCT_ID))) &&
                             (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState ||
                              enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
                             int auth = 0;
                             btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
+                            BTRMGRLOG_INFO("auth is -- %d, devId: %lld, addr: %s, appearance: 0x%x\n",
+                                           auth, p_StatusCB->deviceId, p_StatusCB->deviceAddress,
+                                           p_StatusCB->ui16DevAppearanceBleSpec);
                             if (!auth)
                                 break;
                         }
