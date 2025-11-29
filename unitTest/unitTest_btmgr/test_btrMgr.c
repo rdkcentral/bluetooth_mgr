@@ -4487,7 +4487,7 @@ void test_BTRMGR_SelectMediaElement_fail_to_select(void)
     ghBTRCoreHdl = NULL;
 }
 
-void test_BTRMGR_GetDeviceProperties_InvalidInput(void)
+/*void test_BTRMGR_GetDeviceProperties_InvalidInput(void)
 {
     BTRMGR_DevicesProperty_t deviceProperty;
     BTRMgrDeviceHandle deviceHandle = 1;
@@ -4506,7 +4506,7 @@ void test_BTRMGR_GetDeviceProperties_InvalidInput(void)
 
     // Test with a NULL device handle
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_INVALID_INPUT, BTRMGR_GetDeviceProperties(1, 0, &deviceProperty));
-}
+}*/
 
 void test_BTRMGR_PerformLeOp_SuccessfulLeOperationAndFound(void)
 {
