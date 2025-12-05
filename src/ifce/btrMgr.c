@@ -6022,11 +6022,11 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                         }
 #ifdef AUTO_CONNECT_ENABLED
                         //Before automatically starting audio, we should check if the device is connectable and then ask the upper layers
-                        unsigned int ui32sleepTimeOut = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS;
-                        unsigned int ui32confirmIdx = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS + 1;
+                        unsigned int ui32sleepTimeOut = 2;
+                        unsigned int ui32confirmIdx = 2;
 
                         do {
-                            unsigned int ui32sleepIdx = BTRMGR_DEVCONN_CHECK_RETRY_ATTEMPTS;
+                            unsigned int ui32sleepIdx = 1;
                             do {
                                 sleep(ui32sleepTimeOut);
                                 lenBtrCoreRet = BTRCore_IsDeviceConnectable(ghBTRCoreHdl, lDeviceHandle);
