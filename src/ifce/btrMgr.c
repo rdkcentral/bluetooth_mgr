@@ -9601,6 +9601,11 @@ btrMgr_DeviceStatusCb (
                         lstEventMessage.m_pairedDevice.m_deviceType = BTRMGR_DEVICE_TYPE_HID;
                         btrMgr_SetDevConnected(lstEventMessage.m_pairedDevice.m_deviceHandle, 1);
                         BTRCore_newBatteryLevelDevice(ghBTRCoreHdl);
+                        if ((p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
+                            lstEventMessage.m_pairedDevice.m_deviceHandle == ghBTRMgrDevHdlConnInProgress) {
+                            BTRMGRLOG_INFO(">> Connection in progress,Not required to post device found event <<\n");
+                            break;
+                        }
                     }
                     else if ((lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_SMARTPHONE) ||
                               (lstEventMessage.m_pairedDevice.m_deviceType == BTRMGR_DEVICE_TYPE_TABLET)) {
