@@ -4007,7 +4007,7 @@ BTRMGR_DeInit (
     gboolean isRemoteDev = FALSE;
 
     isDeinitInProgress = TRUE;
-    BTRCORELOG_DEBUG ("Entering deinit\n");
+    BTRMGRLOG_DEBUG ("Entering deinit\n");
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
