@@ -10457,6 +10457,10 @@ btrMgr_ConnectionInAuthenticationCb (
                 BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
             } else {
                 BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
+                if (strstr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") || (apstConnCbInfo->stKnownDevice.ui32VendorId == 834)) {
+                    btrMgr_ClearDisconnDevHoldOffTimer();
+                    btrMgr_SetDisconnDevHoldOffTimer(apstConnCbInfo->stKnownDevice.tDeviceId);
+                }
             }
             gEventRespReceived = 0;
         }
