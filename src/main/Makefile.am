@@ -66,6 +66,8 @@ else
 AM_LDFLAGS +=  -lrfcapi
 endif
 
+AM_LDFLAGS += -ltelemetry_msgsender
+
 btMgrBus_SOURCES = btrMgr_main.c ${top_srcdir}/src/rpc/btmgr_rbus_internal_interface.c ${top_srcdir}/src/ifce/btrMgr.c
 endif
 
