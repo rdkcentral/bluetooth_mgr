@@ -3828,6 +3828,9 @@ BTRMGR_Init (
     }
 #endif
 
+	char btmgr_name[] = "btmgr";
+	t2_init(btmgr_name);
+	
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
