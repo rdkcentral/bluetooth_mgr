@@ -61,7 +61,7 @@
 #include "btrMgr_SysDiag.h"
 #include "btrMgr_Columbo.h"
 #include "btrMgr_LEOnboarding.h"
-
+#include <telemetry_busmessage_sender.h>
 
 #ifdef LE_MODE
 #include "btrMgr_batteryService.h"
