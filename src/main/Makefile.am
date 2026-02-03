@@ -58,7 +58,7 @@ btMgrBus_LDADD = $(top_builddir)/src/audioCap/libbtrMgrAudioCapture.la $(top_bui
 endif
 endif
 
-AM_LDFLAGS = $(GLIB_LDFLAGS) $(GLIB_LIBS) $(G_THREAD_LIBS) $(BTRCORE_LIBS) -ldbus-1 -lrbus -lrdkloggers $(BREAKPAD_LFLAGS) $(SYSTEMD_SDNOTIFY_LDFLAGS) ${SAFEC_LFLAGS}
+AM_LDFLAGS = $(GLIB_LDFLAGS) $(GLIB_LIBS) $(G_THREAD_LIBS) $(BTRCORE_LIBS) -ldbus-1 -lrbus -ltelemetry_msgsender -lrdkloggers $(BREAKPAD_LFLAGS) $(SYSTEMD_SDNOTIFY_LDFLAGS) ${SAFEC_LFLAGS}
 
 if WITH_PI_BUILD
 AM_CPPFLAGS += $(PI_BUILD_FLAG)
