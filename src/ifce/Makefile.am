@@ -35,7 +35,7 @@ AM_CPPFLAGS = -Wall -Werror -I${top_srcdir}/include -I${top_srcdir}/include/comm
 libBTMgr_la_LIBADD = $(top_builddir)/src/audioCap/libbtrMgrAudioCapture.la $(top_builddir)/src/persistIf/libbtrMgrPersistInterface.la $(top_builddir)/src/streamOut/libbtrMgrStreamOut.la $(top_builddir)/src/streamIn/libbtrMgrStreamIn.la $(top_builddir)/src/sysDiag/libbtrMgrSysDiag.la  $(top_builddir)/src/columbo/libbtrMgrColumbo.la $(top_builddir)/src/leOnboarding/libbtrMgrLeOnboarding.la
 endif
 endif
-AM_LDFLAGS = $(GLIB_LDFLAGS) $(GLIB_LIBS) $(GTHREAD_LIBS) $(BTRCORE_LIBS) $(RDKLOGGER_LIBS) $(SAFEC_LFLAGS) -lssl -lcrypto
+AM_LDFLAGS = $(GLIB_LDFLAGS) $(GLIB_LIBS) $(GTHREAD_LIBS) $(BTRCORE_LIBS) $(RDKLOGGER_LIBS) $(SAFEC_LFLAGS) -lssl -lcrypto -ltelemetry_msgsender
 
 if WITH_PI_BUILD
 AM_CPPFLAGS += $(PI_BUILD_FLAG)
