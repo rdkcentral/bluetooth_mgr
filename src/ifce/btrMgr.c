@@ -6184,8 +6184,8 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                                 } else {
                                     BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
                                     if (strstr(stDeviceInfo.pcDeviceName, "AirPods") ||
-                                               (stDeviceInfo.ui32VendorId == 834) ||
-                                                (stDeviceInfo..ui32VendorId == 76)) {
+                                               (stDeviceInfo.ui32ModaliasVendorId == 834) ||
+                                                (stDeviceInfo.ui32ModaliasVendorId == 76)) {
                                          BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
                                          btrMgr_ClearDisconnDevHoldOffTimer();
 		                                 btrMgr_SetDisconnDevHoldOffTimer(stDeviceInfo.tDeviceId);
