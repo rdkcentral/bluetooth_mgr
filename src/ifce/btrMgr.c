@@ -6189,7 +6189,7 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                                          BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
                                          btrMgr_ClearDisconnDevHoldOffTimer();
 		                                 btrMgr_SetDisconnDevHoldOffTimer(stDeviceInfo.tDeviceId);
-                                    ]
+									}
                                 }
                                 gEventRespReceived = 0;
                             }
