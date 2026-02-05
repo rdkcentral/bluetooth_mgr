@@ -10465,7 +10465,7 @@ btrMgr_ConnectionInAuthenticationCb (
                 BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
             } else {
                 BTRMGRLOG_INFO (">>>> Incoming Connection rejected for Audio Out device based on the response from UI %u <<<<<\n",apstConnCbInfo->stKnownDevice.ui32VendorId);
-                if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "airpods") ||
+                if (strstr(apstConnCbInfo->stKnownDevice.pcDeviceName, "airpods") ||
                     (apstConnCbInfo->stKnownDevice.ui32VendorId == 834) ||
                     (apstConnCbInfo->stKnownDevice.ui32VendorId == 76)) {
                     BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
