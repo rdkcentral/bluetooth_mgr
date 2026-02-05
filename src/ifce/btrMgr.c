@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <strings.h>
 #include <glib.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -6182,7 +6183,7 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                                 if (gAcceptConnection) {
                                     BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
                                 } else {
-                                    BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
+                                    BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI %u \n",stDeviceInfo.ui32ModaliasVendorId);
                                     if (strcasestr(stDeviceInfo.pcDeviceName, "AirPods") ||
                                                (stDeviceInfo.ui32ModaliasVendorId == 834) ||
                                                 (stDeviceInfo.ui32ModaliasVendorId == 76)) {
@@ -10463,7 +10464,7 @@ btrMgr_ConnectionInAuthenticationCb (
             if (gAcceptConnection) {
                 BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
             } else {
-                BTRMGRLOG_INFO (">>>> Incoming Connection rejected for Audio Out device based on the response from UI <<<<<\n");
+                BTRMGRLOG_INFO (">>>> Incoming Connection rejected for Audio Out device based on the response from UI %u <<<<<\n",apstConnCbInfo->stKnownDevice.ui32VendorId);
                 if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") ||
                     (apstConnCbInfo->stKnownDevice.ui32VendorId == 834) ||
                     (apstConnCbInfo->stKnownDevice.ui32VendorId == 76)) {
