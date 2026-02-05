@@ -6184,7 +6184,7 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                                     BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
                                 } else {
                                     BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI %u \n",stDeviceInfo.ui32ModaliasVendorId);
-                                    if (strcasestr(stDeviceInfo.pcDeviceName, "AirPods") ||
+                                    if (strstr(stDeviceInfo.pcDeviceName, "airpods") ||
                                                (stDeviceInfo.ui32ModaliasVendorId == 834) ||
                                                 (stDeviceInfo.ui32ModaliasVendorId == 76)) {
                                          BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
@@ -10465,7 +10465,7 @@ btrMgr_ConnectionInAuthenticationCb (
                 BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
             } else {
                 BTRMGRLOG_INFO (">>>> Incoming Connection rejected for Audio Out device based on the response from UI %u <<<<<\n",apstConnCbInfo->stKnownDevice.ui32VendorId);
-                if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") ||
+                if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "airpods") ||
                     (apstConnCbInfo->stKnownDevice.ui32VendorId == 834) ||
                     (apstConnCbInfo->stKnownDevice.ui32VendorId == 76)) {
                     BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
@@ -10482,7 +10482,7 @@ btrMgr_ConnectionInAuthenticationCb (
         }
         else {
             BTRMGRLOG_ERROR ("Incoming Connection denied\n");
-            if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") || (apstConnCbInfo->stKnownDevice.ui32VendorId == 834)) {
+            if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "airpods") || (apstConnCbInfo->stKnownDevice.ui32VendorId == 834)) {
                 btrMgr_ClearDisconnDevHoldOffTimer();
                 btrMgr_SetDisconnDevHoldOffTimer(apstConnCbInfo->stKnownDevice.tDeviceId);
             }
