@@ -10482,7 +10482,7 @@ btrMgr_ConnectionInAuthenticationCb (
         }
         else {
             BTRMGRLOG_ERROR ("Incoming Connection denied\n");
-            if (strcasestr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") || (apstConnCbInfo->stKnownDevice.ui32VendorId == 834)) {
+            if (strstr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") || (apstConnCbInfo->stKnownDevice.ui32VendorId == 834)) {
                 btrMgr_ClearDisconnDevHoldOffTimer();
                 btrMgr_SetDisconnDevHoldOffTimer(apstConnCbInfo->stKnownDevice.tDeviceId);
             }
