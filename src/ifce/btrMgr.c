@@ -6183,6 +6183,13 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                                     BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
                                 } else {
                                     BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
+                                    if (strstr(stDeviceInfo.pcDeviceName, "AirPods") ||
+                                        (stDeviceInfo.ui32ModaliasVendorId == 834) ||
+                                        (stDeviceInfo.ui32ModaliasVendorId == 76)) {
+                                         BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
+                                         btrMgr_ClearDisconnDevHoldOffTimer();
+                                         btrMgr_SetDisconnDevHoldOffTimer(stDeviceInfo.tDeviceId);
+                                    }
                                 }
                                 gEventRespReceived = 0;
                             }
@@ -9083,16 +9090,10 @@ btrmgr_DisconnectDeviceTimerCb (
 
     gAuthDisconnDevTimeOutRef = 0; // TODO: Is this really required ? Should we call btrMgr_ClearDisconnDevHoldOffTimer to perform g_source_destroy
                                    // Can we even call a g_source_destroy from the context of the timer Cb associated with the same Id/Ref ?
-    if (ghBTRMgrDevHdlCurStreaming != aBTRCoreDevId && ghBTRMgrDevHdlStreamStartUp != aBTRCoreDevId) //check device hasn't started streaming since timer was set ( don't want to disconnect incorrectly)
-    {
-        if (BTRCore_DisconnectDevice (ghBTRCoreHdl, aBTRCoreDevId, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
-            BTRMGRLOG_ERROR ("Post Device disconnect Cb timeout Failed!\n");
-        }
+    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, aBTRCoreDevId, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
+        BTRMGRLOG_ERROR ("Post Device disconnect Cb timeout Failed!\n");
     }
-    else 
-    {
-        BTRMGRLOG_INFO("Not disconnecting device, as device has started streaming or is starting up streaming\n");
-    }
+
     return FALSE;
 }
 
@@ -10457,6 +10458,13 @@ btrMgr_ConnectionInAuthenticationCb (
                 BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
             } else {
                 BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
+                if (strstr(apstConnCbInfo->stKnownDevice.pcDeviceName, "AirPods") ||
+                    (apstConnCbInfo->stKnownDevice.ui32VendorId == 834) ||
+                    (apstConnCbInfo->stKnownDevice.ui32VendorId == 76)) {
+                      BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
+                      btrMgr_ClearDisconnDevHoldOffTimer();
+                      btrMgr_SetDisconnDevHoldOffTimer(apstConnCbInfo->stKnownDevice.tDeviceId);
+                }
             }
             gEventRespReceived = 0;
         }
