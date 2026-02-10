@@ -5336,7 +5336,7 @@ BTRMGR_GetPairedDevices (
                 strncpy(lpstBtrMgrPDevice->m_name,          lstBtrCoreListOfPDevices.devices[i].pcDeviceName,   (BTRMGR_NAME_LEN_MAX - 1));
                 strncpy(lpstBtrMgrPDevice->m_deviceAddress, lstBtrCoreListOfPDevices.devices[i].pcDeviceAddress,(BTRMGR_NAME_LEN_MAX - 1));
 
-                strncpy(lpstBtrMgrPDevice->m_deviceAddress, lstBtrCoreListOfPDevices.devices[i].pcDeviceAddress,strlen(lstBtrCoreListOfPDevices.devices[i].pcDeviceAddress)-1);
+				lpstBtrMgrPDevice->m_deviceAddress[BTRMGR_NAME_LEN_MAX - 1] = '\0';
 
                 lpstBtrMgrPDevice->m_ui32DevClassBtSpec = lstBtrCoreListOfPDevices.devices[i].ui32DevClassBtSpec;
                 lpstBtrMgrPDevice->m_ui16DevAppearanceBleSpec = lstBtrCoreListOfPDevices.devices[i].ui16DevAppearanceBleSpec;
