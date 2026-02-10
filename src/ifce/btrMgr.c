@@ -3828,6 +3828,10 @@ BTRMGR_Init (
     }
 #endif
 
+#ifdef BUILD_FOR_BRCM
+BTRMGRLOG_INFO(">>>>>>>>>>>> distro enabled for brcm devices <<<<<<<<<<<<<<<\n");
+#endif
+
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
