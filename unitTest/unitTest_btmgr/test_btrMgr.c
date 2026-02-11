@@ -5144,7 +5144,7 @@ void test_btrmgr_DisconnectDeviceTimerCb_SuccessfulDisconnection(void)
     TEST_ASSERT_EQUAL(0, gAuthDisconnDevTimeOutRef); // Verify timeout reference is reset
 }
 
-void test_btrmgr_DisconnectDeviceTimerCb_DeviceNotStreaming(void)
+void test_btrmgr_DisconnectDeviceTimerCb_DeviceStreaming(void)
 {
     tBTRCoreDevId expectedDevId = 1; // The device is now streaming
 
