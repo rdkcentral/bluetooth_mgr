@@ -9090,10 +9090,12 @@ btrmgr_DisconnectDeviceTimerCb (
 
     gAuthDisconnDevTimeOutRef = 0; // TODO: Is this really required ? Should we call btrMgr_ClearDisconnDevHoldOffTimer to perform g_source_destroy
                                    // Can we even call a g_source_destroy from the context of the timer Cb associated with the same Id/Ref ?
-    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, aBTRCoreDevId, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
-        BTRMGRLOG_ERROR ("Post Device disconnect Cb timeout Failed!\n");
-    }
 
+	if (ghBTRMgrDevHdlCurStreaming != aBTRCoreDevId) {
+        if (BTRCore_DisconnectDevice (ghBTRCoreHdl, aBTRCoreDevId, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
+            BTRMGRLOG_ERROR ("Post Device disconnect Cb timeout Failed!\n");
+        }
+	}
     return FALSE;
 }
 
