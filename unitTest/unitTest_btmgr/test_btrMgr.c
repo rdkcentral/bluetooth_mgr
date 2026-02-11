@@ -5146,7 +5146,7 @@ void test_btrmgr_DisconnectDeviceTimerCb_SuccessfulDisconnection(void)
 
 void test_btrmgr_DisconnectDeviceTimerCb_DeviceNotStreaming(void)
 {
-    tBTRCoreDevId expectedDevId = 0; // The device is now not streaming
+    tBTRCoreDevId expectedDevId = 1; // The device is now streaming
 
     // Setup: Device has started streaming
     ghBTRMgrDevHdlCurStreaming = expectedDevId;
