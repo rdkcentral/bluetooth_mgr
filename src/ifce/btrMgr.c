@@ -9096,7 +9096,7 @@ btrmgr_DisconnectDeviceTimerCb (
             BTRMGRLOG_ERROR ("Post Device disconnect Cb timeout Failed!\n");
         }
 	 } else {
-        BTRMGRLOG_INFO("Not disconnecting device, as device has started streaming or is starting up streaming\n");
+        BTRMGRLOG_INFO("Not disconnecting device, as device has started streaming\n");
 	 }
     return FALSE;
 }
