@@ -61,7 +61,7 @@
 #include "btrMgr_SysDiag.h"
 #include "btrMgr_Columbo.h"
 #include "btrMgr_LEOnboarding.h"
-#include <telemetry_busmessage_sender.h>
+#include "btrCore_telemetry.h"
 
 #ifdef LE_MODE
 #include "btrMgr_batteryService.h"
@@ -3829,7 +3829,7 @@ BTRMGR_Init (
 #endif
 
 	char btmgr_name[] = "btmgr";
-	t2_init(btmgr_name);
+	telemetry_init(btmgr_name);
 	
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
@@ -5554,6 +5554,11 @@ BTRMGR_DisconnectFromDevice (
         }
         else {
             //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "Success Disconnect from this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
+                stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+            telemetry_event_s("BTDiscSucc_split", buffer);
             BTRMGRLOG_INFO ("Success Disconnect from this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X\n",
             stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
             stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
