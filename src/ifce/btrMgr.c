@@ -9094,8 +9094,10 @@ btrmgr_DisconnectDeviceTimerCb (
 	if (ghBTRMgrDevHdlCurStreaming != aBTRCoreDevId) {
         if (BTRCore_DisconnectDevice (ghBTRCoreHdl, aBTRCoreDevId, lenBTRCoreDeviceType) != enBTRCoreSuccess) {
             BTRMGRLOG_ERROR ("Post Device disconnect Cb timeout Failed!\n");
-        }
-	}
+        } else {
+            BTRMGRLOG_INFO("Not disconnecting device, as device has started streaming or is starting up streaming\n");
+		}
+	 }
     return FALSE;
 }
 
