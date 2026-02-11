@@ -3828,6 +3828,7 @@ BTRMGR_Init (
     }
 #endif
 
+BTRMGRLOG_INFO(">>>>> Changes reflected <<<<<\n");
 #ifdef BUILD_FOR_BRCM
 BTRMGRLOG_INFO(">>>>>>>>>>>> distro enabled for brcm devices <<<<<<<<<<<<<<<\n");
 #endif
