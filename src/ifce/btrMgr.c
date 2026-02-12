@@ -4483,8 +4483,6 @@ BTRMGR_SetAdapterDiscoverable (
             if (!btrMgr_GetAgentActivated()) {
                 BTRMGRLOG_INFO ("Activate agent\n");
                 if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
-                    //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
-                    telemetry_event_d("BT_ERR_AgentActFailed", 1);
                     BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
                     lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
                 }
@@ -4616,6 +4614,8 @@ BTRMGR_StartDeviceDiscovery_Internal (
 
     lenBtrCoreRet = BTRCore_StartDiscovery(ghBTRCoreHdl, pAdapterPath, lenBTRCoreDeviceType, 0);
     if (lenBtrCoreRet != enBTRCoreSuccess) {
+        //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+        telemetry_event_d("BT_ERR_DiscStartFail", 1);
         BTRMGRLOG_ERROR ("Failed to start discovery\n");
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
@@ -4871,7 +4871,7 @@ BTRMGR_GetDiscoveredDevices_Internal (
     lenBtrCoreRet = BTRCore_GetListOfScannedDevices(ghBTRCoreHdl, &lstBtrCoreListOfSDevices);
     if (lenBtrCoreRet != enBTRCoreSuccess) {
         //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
-        telemetry_event_d("BT_ERR_DiscStartFail", 1);
+        telemetry_event_d("BT_ERR_GetDiscListFail", 1);
         BTRMGRLOG_ERROR ("Failed to get list of discovered devices\n");
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
@@ -5130,8 +5130,6 @@ BTRMGR_PairDevice (
     if (ui8reActivateAgent) {
         BTRMGRLOG_INFO ("Activate agent\n");
         if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
-            //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
-            telemetry_event_d("BT_ERR_AgentActFailed", 1);
             BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
         }
@@ -5327,8 +5325,6 @@ BTRMGR_UnpairDevice (
     if (ui8reActivateAgent) {
         BTRMGRLOG_INFO ("Activate agent\n");
         if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
-            //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
-            telemetry_event_d("BT_ERR_AgentActFailed", 1);
             BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
         }
