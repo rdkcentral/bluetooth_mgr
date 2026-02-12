@@ -69,7 +69,7 @@ extern "C"
 #define BTRMGR_REMOTE_DEVICE                "Remote Device"
 
 #define BTRMGR_APPLE_VENDOR_ID_1             0x342
-#define BTRMGR_APPLE_VENDOR_ID_1             0x4c
+#define BTRMGR_APPLE_VENDOR_ID_2             0x4c
 #define BTRMGR_XBOX_ELITE_PRODUCT_ID         0x0B05
 #define BTRMGR_XBOX_ELITE_VENDOR_ID          0x045E
 #define BTRMGR_SONY_PS_VENDOR_ID             0x054c
