@@ -43,6 +43,10 @@ else
 AM_LDFLAGS +=  -lrfcapi
 endif
 
+if WITH_BRCM_BUILD
+AM_CPPFLAGS += $(BRCM_BUILD_FLAG)
+endif
+
 lib_LTLIBRARIES = libBTMgr.la
 libBTMgr_la_SOURCES = btrMgr.c
 libBTMgr_la_includedir = $(includedir)
