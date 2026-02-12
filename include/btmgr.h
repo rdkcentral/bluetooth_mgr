@@ -68,6 +68,8 @@ extern "C"
 #define BTRMGR_COLUMBO_UUID                 "64d9f574-7756-4ebc-9ebe-ed5f7f2871ab"
 #define BTRMGR_REMOTE_DEVICE                "Remote Device"
 
+#define BTRMGR_APPLE_VENDOR_ID_1             0x342
+#define BTRMGR_APPLE_VENDOR_ID_1             0x4c
 #define BTRMGR_XBOX_ELITE_PRODUCT_ID         0x0B05
 #define BTRMGR_XBOX_ELITE_VENDOR_ID          0x045E
 #define BTRMGR_SONY_PS_VENDOR_ID             0x054c
