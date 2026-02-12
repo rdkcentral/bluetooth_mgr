@@ -5015,6 +5015,18 @@ BTRMGR_PairDevice (
 
     if (!bIsPS4) {
         if (enBTRCoreSuccess != BTRCore_PairDevice(ghBTRCoreHdl, ahBTRMgrDevHdl)) {
+            // Send telemetry for non-HID devices (HID has its own async telemetry later)
+            if (lenBTRCoreDevTy != enBTRCoreHID) {
+                lenBtrMgrRet = btrMgr_GetDeviceDetails(ahBTRMgrDevHdl,&stDeviceInfo);
+                if (lenBtrMgrRet == eBTRMgrSuccess) {
+                    //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
+                    char buffer[256];
+                    snprintf(buffer, sizeof(buffer), "Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                        stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
+                        stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
+                    telemetry_event_s("BTPairFail_split", buffer);
+                }
+            }
             BTRMGRLOG_ERROR ("Failed to pair a device\n");
             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
             lBtMgrOutEvent  = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
