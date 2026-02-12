@@ -720,7 +720,7 @@ btrMgr_CheckHidGamePadServiceAvailability (
         if(status == WDMP_ERR_DEFAULT_VALUE){
             BTRMGRLOG_INFO ("getRFCParameter : Default value\n");
         }
-        BTRMGRLOG_DEBUG ("name = %s, type = %d, value = %s\n", param.name, param.type, param.value);
+        BTRMGRLOG_INFO ("name = %s, type = %d, value = %s\n", param.name, param.type, param.value);
 
         if (!strncmp(param.value, "true", strlen("true"))) {
             gIsHidGamePadEnabled = 1;
@@ -3077,6 +3077,8 @@ btrMgr_StartAudioStreamingOut (
         } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32confirmIdx));
 
         if (lenBtrCoreRet != enBTRCoreSuccess) {
+            //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
+            telemetry_event_d("BT_ERROR_NotConnect", 1);
             BTRMGRLOG_ERROR ("Device Not Connectable\n");
             ghBTRMgrDevHdlStreamStartUp = 0;
             return eBTRMgrFailure;
@@ -3874,6 +3876,8 @@ BTRMGR_Init (
     BTRMGRLOG_INFO ("Number of Adapters found are = %u\n", gListOfAdapters.number_of_adapters);
 
     if (0 == gListOfAdapters.number_of_adapters) {
+        //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+        telemetry_event_d("BT_ERR_AdaptorNotFound", 1);
         BTRMGRLOG_WARN("Bluetooth adapter NOT Found..!!!!\n");
         return  BTRMGR_RESULT_GENERIC_FAILURE;
     }
@@ -3915,6 +3919,8 @@ BTRMGR_Init (
     if (!btrMgr_GetAgentActivated()) {
         BTRMGRLOG_INFO ("Activate agent\n");
         if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
+            //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+            telemetry_event_d("BT_ERR_AgentActFailed", 1);
             BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
         }
@@ -4477,6 +4483,8 @@ BTRMGR_SetAdapterDiscoverable (
             if (!btrMgr_GetAgentActivated()) {
                 BTRMGRLOG_INFO ("Activate agent\n");
                 if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
+                    //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+                    telemetry_event_d("BT_ERR_AgentActFailed", 1);
                     BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
                     lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
                 }
@@ -4862,6 +4870,8 @@ BTRMGR_GetDiscoveredDevices_Internal (
 
     lenBtrCoreRet = BTRCore_GetListOfScannedDevices(ghBTRCoreHdl, &lstBtrCoreListOfSDevices);
     if (lenBtrCoreRet != enBTRCoreSuccess) {
+        //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+        telemetry_event_d("BT_ERR_DiscStartFail", 1);
         BTRMGRLOG_ERROR ("Failed to get list of discovered devices\n");
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
@@ -5108,6 +5118,8 @@ BTRMGR_PairDevice (
     if (ui8reActivateAgent) {
         BTRMGRLOG_INFO ("Activate agent\n");
         if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
+            //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+            telemetry_event_d("BT_ERR_AgentActFailed", 1);
             BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
         }
@@ -5303,6 +5315,8 @@ BTRMGR_UnpairDevice (
     if (ui8reActivateAgent) {
         BTRMGRLOG_INFO ("Activate agent\n");
         if ((lenBtrCoreRet = BTRCore_RegisterAgent(ghBTRCoreHdl, 1)) != enBTRCoreSuccess) {
+            //This is telemetry log. If we change this marker name, need to change and configure the telemetry marker in xconf server.
+            telemetry_event_d("BT_ERR_AgentActFailed", 1);
             BTRMGRLOG_ERROR ("Failed to Activate Agent\n");
             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
         }
