@@ -823,7 +823,6 @@ btrMgr_CheckAudioInServiceAvailability (
     }
 #endif
 }
-#endif
 
 #ifndef LE_MODE
 STATIC void
