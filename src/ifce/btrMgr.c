@@ -679,11 +679,6 @@ STATIC void
 btrMgr_TelemetryTestSimulation (
     void
 ) {
-    char *test_env = getenv("BTRMGR_TELEMETRY_TEST");
-    if (test_env == NULL || strcmp(test_env, "1") != 0) {
-        return; // Skip test if environment variable not set
-    }
-
     BTRMGRLOG_INFO("============================================\n");
     BTRMGRLOG_INFO("TELEMETRY TEST SIMULATION - START\n");
     BTRMGRLOG_INFO("============================================\n");
