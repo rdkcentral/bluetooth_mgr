@@ -722,6 +722,16 @@ btrMgr_CheckHidGamePadServiceAvailability (
         }
         BTRMGRLOG_INFO ("name = %s, type = %d, value = %s\n", param.name, param.type, param.value);
 
+        /* Send telemetry marker based on GamePad RFC parameter value */
+        if (param.value != NULL) {
+            if (!strncmp(param.value, "false", strlen("false"))) {
+                telemetry_event_d("BT_INFO_GP_False", 1);
+            }
+            else if (!strncmp(param.value, "true", strlen("true"))) {
+                telemetry_event_d("BT_INFO_GP_E", 1);
+            }
+        }
+
         if (!strncmp(param.value, "true", strlen("true"))) {
             gIsHidGamePadEnabled = 1;
             BTRMGRLOG_INFO ("BTR HidGamePad Serivce will be available.\n");
