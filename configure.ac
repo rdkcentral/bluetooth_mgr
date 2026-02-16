@@ -370,7 +370,7 @@ AC_ARG_ENABLE([brcm-build],
                [
                  case "${enableval}" in
                   yes) brcm_build_ok=yes
-                    BRCM_BUILD_FLAG="-DBUILD_FOR_BRCM" 
+                    BRCM_BUILD_FLAG="" 
                     AC_DEFINE([BUILD_FOR_BRCM], [1], [Enable Broadcom build])
                     ;;
                   no)  brcm_build_ok=no;;
