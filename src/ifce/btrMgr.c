@@ -4030,12 +4030,11 @@ BTRMGR_DeInit (
 
             BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
             isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_serviceInfo,lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
-            if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
-                BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
-            }
-
-            /* Removed the wait time for disconnection confirmation from BlueZ for remote devices. */
+            /* Remove disconnect for Remote Control devices */
             if (!isRemoteDev) {
+                if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
+                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                }
                 do {
                     unsigned int ui32sleepIdx = 2;
 
