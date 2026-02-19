@@ -9400,6 +9400,9 @@ btrMgr_IncomingConnectionAuthenticationThread(
         gfpcBBTRMgrEventOut(lstEventMessage);
     }
 
+    /* Note: Access to global variables gEventRespReceived, gAcceptConnection, and gListOfPairedDevices
+     * is not protected by mutexes. This maintains the same thread safety characteristics as the 
+     * original blocking implementation. For production hardening, consider adding mutex protection. */
     BTRMGR_GetPairedDevices(lstEventMessage.m_adapterIndex, &gListOfPairedDevices);
     BTRMGRLOG_INFO("Waiting for the external connection response from UI for LE HID device (in thread)\n");
     unsigned int ui32sleepIdx = 40;
@@ -9412,7 +9415,7 @@ btrMgr_IncomingConnectionAuthenticationThread(
         BTRMGRLOG_INFO("External connection response not received from UI for LE HID device, So disconnecting the device.\n");
         auth = 0;
         if (BTRCore_DisconnectDevice(ghBTRCoreHdl, p_StatusCB->deviceId, enBTRCoreHID) == enBTRCoreSuccess) {
-             BTRMGRLOG_INFO("Disconnected an LE HID device successfully\n");
+            BTRMGRLOG_INFO("Disconnected an LE HID device successfully\n");
         }
     } else {
         auth = gAcceptConnection;
@@ -9455,6 +9458,8 @@ btrMgr_IncomingConnectionAuthenticationAsync(
         return;
     }
 
+    /* g_thread_unref allows thread to run independently without blocking.
+     * Thread will clean up when it completes. Same pattern as btrMgr_ConnectBackToDevice. */
     g_thread_unref(pAuthThread);
     BTRMGRLOG_INFO("Launched authentication thread for device %lld\n", p_StatusCB->deviceId);
 }
