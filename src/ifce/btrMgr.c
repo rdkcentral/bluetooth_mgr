@@ -794,6 +794,7 @@ btrMgr_TelemetryTestSimulation (
     BTRMGRLOG_INFO("============================================\n");
 }
 
+#ifndef LE_MODE
 STATIC void
 btrMgr_CheckAudioInServiceAvailability (
     void
@@ -823,6 +824,7 @@ btrMgr_CheckAudioInServiceAvailability (
     }
 #endif
 }
+#endif
 
 #ifndef LE_MODE
 STATIC void
