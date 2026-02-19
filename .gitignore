@@ -1,0 +1,17 @@
+# Build artifacts
+Makefile.in
+aclocal.m4
+autom4te.cache/
+cfg/
+config.log
+configure
+install-sh
+m4/
+_codeql_detected_source_root
+*.o
+*.a
+*.so
+*.la
+*.lo
+.deps/
+.libs/
