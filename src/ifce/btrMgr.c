@@ -3976,7 +3976,7 @@ BTRMGR_Init (
 	telemetry_init(btmgr_name);
 
     /* Run telemetry test simulation if BTRMGR_TELEMETRY_TEST=1 is set */
-    btrMgr_TelemetryTestSimulation();
+    // btrMgr_TelemetryTestSimulation();
 	
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
@@ -5237,7 +5237,7 @@ BTRMGR_PairDevice (
             BTRMGRLOG_INFO ("Pairing success device MAC %s\n", stDeviceInfo.pcDeviceAddress);
 
             /* Run telemetry test simulation after successful pairing */
-            btrMgr_TelemetryTestSimulation();
+            // btrMgr_TelemetryTestSimulation();
 
             ui8isDevicePaired = 1;
 
