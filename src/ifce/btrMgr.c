@@ -9431,7 +9431,8 @@ static void* btrMgr_IncomingConnectionAuthenticationThread(void* context)
 
     int auth = 0;
     btrMgr_IncomingConnectionAuthentication(&threadCtx->statusCB, &auth);
-    threadCtx->auth = auth;
+    /* Note: auth result is handled inside btrMgr_IncomingConnectionAuthentication
+     * which disconnects the device if authentication fails */
 
     free(threadCtx);
     return NULL;
@@ -9452,6 +9453,8 @@ static void btrMgr_IncomingConnectionAuthenticationAsync(stBTRCoreDevStatusCBInf
     }
 
     /* Copy the status callback information */
+    /* Note: stBTRCoreDevStatusCBInfo contains only value types (no pointers),
+     * so memcpy is safe for deep copy */
     memcpy(&threadCtx->statusCB, p_StatusCB, sizeof(stBTRCoreDevStatusCBInfo));
     threadCtx->auth = 0;
 
@@ -9737,7 +9740,7 @@ btrMgr_DeviceStatusCb (
                             /* Disconnect gamepad LE */
                             if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
                                 btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
-                                BTRMGRLOG_INFO("Started authentication thread in separate thread\n");
+                                BTRMGRLOG_INFO("Started authentication thread\n");
                             }
                         break;
                         }
