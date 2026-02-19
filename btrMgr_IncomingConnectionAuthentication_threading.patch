@@ -1,7 +1,7 @@
 From e035f2c67bf66950cde69d67db32b0b3a8e2abb6 Mon Sep 17 00:00:00 2001
 From: "copilot-swe-agent[bot]" <198982749+Copilot@users.noreply.github.com>
 Date: Thu, 19 Feb 2026 13:01:58 +0000
-Subject: [PATCH] Add pthread support and create threaded authentication
+Subject: [PATCH 1/2] Add pthread support and create threaded authentication
  function
 
 Co-authored-by: natrajmuthusamy <52849136+natrajmuthusamy@users.noreply.github.com>
@@ -148,6 +148,213 @@ index 50fb2a0..bf4f741 100644
                              } else {
                                  BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
                                  break;
+-- 
+2.53.0
+
+
+From 7fdec6fd9808f0b87eed8ba5349554525fa62f45 Mon Sep 17 00:00:00 2001
+From: "copilot-swe-agent[bot]" <198982749+Copilot@users.noreply.github.com>
+Date: Thu, 19 Feb 2026 13:04:51 +0000
+Subject: [PATCH 2/2] Address code review comments and improve documentation
+
+Co-authored-by: natrajmuthusamy <52849136+natrajmuthusamy@users.noreply.github.com>
+---
+ ...ngConnectionAuthentication_threading.patch | 153 ++++++++++++++++++
+ src/ifce/btrMgr.c                             |   7 +-
+ 2 files changed, 158 insertions(+), 2 deletions(-)
+ create mode 100644 btrMgr_IncomingConnectionAuthentication_threading.patch
+
+diff --git a/btrMgr_IncomingConnectionAuthentication_threading.patch b/btrMgr_IncomingConnectionAuthentication_threading.patch
+new file mode 100644
+index 0000000..aa5594b
+--- /dev/null
++++ b/btrMgr_IncomingConnectionAuthentication_threading.patch
+@@ -0,0 +1,153 @@
++From e035f2c67bf66950cde69d67db32b0b3a8e2abb6 Mon Sep 17 00:00:00 2001
++From: "copilot-swe-agent[bot]" <198982749+Copilot@users.noreply.github.com>
++Date: Thu, 19 Feb 2026 13:01:58 +0000
++Subject: [PATCH] Add pthread support and create threaded authentication
++ function
++
++Co-authored-by: natrajmuthusamy <52849136+natrajmuthusamy@users.noreply.github.com>
++---
++ src/ifce/btrMgr.c | 85 +++++++++++++++++++++++++++++++++++++++--------
++ 1 file changed, 72 insertions(+), 13 deletions(-)
++
++diff --git a/src/ifce/btrMgr.c b/src/ifce/btrMgr.c
++index 50fb2a0..bf4f741 100644
++--- a/src/ifce/btrMgr.c
+++++ b/src/ifce/btrMgr.c
++@@ -37,6 +37,7 @@
++ #include <sys/types.h>
++ #include <sys/stat.h>
++ #include <time.h>
+++#include <pthread.h>
++ #include "btrCore.h"
++ #include "btmgr.h"
++ #include "btrMgr_logger.h"
++@@ -322,6 +323,11 @@ BTRMGR_LeCustomAdvertisement_t stCoreCustomAdv =
++ int b_rdk_logger_enabled = 0;
++ #endif
++ 
+++/* Thread context structure for authentication */
+++typedef struct {
+++    stBTRCoreDevStatusCBInfo statusCB;
+++    int auth;
+++} btrMgr_AuthThreadContext_t;
++ 
++ 
++ /* Static Function Prototypes */
++@@ -332,6 +338,8 @@ static inline void btrMgr_SetAgentActivated (unsigned char aui8AgentActivated);
++ static inline unsigned char btrMgr_GetAgentActivated (void);
++ 
++ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusCB, int *auth);
+++static void* btrMgr_IncomingConnectionAuthenticationThread(void* context);
+++static void btrMgr_IncomingConnectionAuthenticationAsync(stBTRCoreDevStatusCBInfo* p_StatusCB);
++ #ifdef LE_MODE
++ static void btrMgr_CheckBroadcastAvailability (void);
++ #else
++@@ -9412,6 +9420,61 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
++     }
++ }
++ 
+++/* Thread function for incoming connection authentication */
+++static void* btrMgr_IncomingConnectionAuthenticationThread(void* context)
+++{
+++    btrMgr_AuthThreadContext_t* threadCtx = (btrMgr_AuthThreadContext_t*)context;
+++    if (!threadCtx) {
+++        BTRMGRLOG_ERROR("Thread context is NULL\n");
+++        return NULL;
+++    }
+++
+++    int auth = 0;
+++    btrMgr_IncomingConnectionAuthentication(&threadCtx->statusCB, &auth);
+++    threadCtx->auth = auth;
+++
+++    free(threadCtx);
+++    return NULL;
+++}
+++
+++/* Asynchronous version that spawns a thread */
+++static void btrMgr_IncomingConnectionAuthenticationAsync(stBTRCoreDevStatusCBInfo* p_StatusCB)
+++{
+++    if (!p_StatusCB) {
+++        BTRMGRLOG_ERROR("Status callback info is NULL\n");
+++        return;
+++    }
+++
+++    btrMgr_AuthThreadContext_t* threadCtx = (btrMgr_AuthThreadContext_t*)malloc(sizeof(btrMgr_AuthThreadContext_t));
+++    if (!threadCtx) {
+++        BTRMGRLOG_ERROR("Failed to allocate memory for thread context\n");
+++        return;
+++    }
+++
+++    /* Copy the status callback information */
+++    memcpy(&threadCtx->statusCB, p_StatusCB, sizeof(stBTRCoreDevStatusCBInfo));
+++    threadCtx->auth = 0;
+++
+++    pthread_t thread_id;
+++    pthread_attr_t attr;
+++    
+++    /* Initialize thread attributes for detached thread */
+++    pthread_attr_init(&attr);
+++    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+++    
+++    int ret = pthread_create(&thread_id, &attr, btrMgr_IncomingConnectionAuthenticationThread, (void*)threadCtx);
+++    pthread_attr_destroy(&attr);
+++    
+++    if (ret != 0) {
+++        BTRMGRLOG_ERROR("Failed to create authentication thread: %d\n", ret);
+++        free(threadCtx);
+++        return;
+++    }
+++    
+++    BTRMGRLOG_INFO("Authentication thread created successfully for device %lld\n", p_StatusCB->deviceId);
+++}
+++
+++
++ STATIC enBTRCoreRet
++ btrMgr_DeviceStatusCb (
++     stBTRCoreDevStatusCBInfo*   p_StatusCB,
++@@ -9590,13 +9653,11 @@ btrMgr_DeviceStatusCb (
++                              enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) &&
++                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
++                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
++-                            int auth = 0;
++-                            btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
++-                            BTRMGRLOG_INFO("auth is -- %d, devId: %lld, addr: %s, appearance: 0x%x\n",
++-                                           auth, p_StatusCB->deviceId, p_StatusCB->deviceAddress,
+++                            btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+++                            BTRMGRLOG_INFO("Started authentication thread for devId: %lld, addr: %s, appearance: 0x%x\n",
+++                                           p_StatusCB->deviceId, p_StatusCB->deviceAddress,
++                                            p_StatusCB->ui16DevAppearanceBleSpec);
++-                            if (!auth)
++-                                break;
+++                            break;
++                         }
++ #endif //AUTO_CONNECT_ENABLED
++                         if (ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) {
++@@ -9675,9 +9736,8 @@ btrMgr_DeviceStatusCb (
++                             BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
++                             /* Disconnect gamepad LE */
++                             if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
++-                                int auth = 0;
++-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
++-                                BTRMGRLOG_INFO("auth: %d\n", auth);
+++                                btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+++                                BTRMGRLOG_INFO("Started authentication thread in separate thread\n");
++                             }
++                         break;
++                         }
++@@ -9688,10 +9748,9 @@ btrMgr_DeviceStatusCb (
++                         if (p_StatusCB->eDevicePrevState == enBTRCoreDevStConnecting &&
++                             lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) {
++                             if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
++-                                int auth = 0;
++-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
++-                                if (!auth)
++-                                    break;
+++                                btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+++                                BTRMGRLOG_INFO("Started authentication thread for LE HID gamepad\n");
+++                                break;
++                             } else {
++                                 BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
++                                 break;
++-- 
++2.53.0
++
+diff --git a/src/ifce/btrMgr.c b/src/ifce/btrMgr.c
+index bf4f741..869a2b1 100644
+--- a/src/ifce/btrMgr.c
++++ b/src/ifce/btrMgr.c
+@@ -9431,7 +9431,8 @@ static void* btrMgr_IncomingConnectionAuthenticationThread(void* context)
+ 
+     int auth = 0;
+     btrMgr_IncomingConnectionAuthentication(&threadCtx->statusCB, &auth);
+-    threadCtx->auth = auth;
++    /* Note: auth result is handled inside btrMgr_IncomingConnectionAuthentication
++     * which disconnects the device if authentication fails */
+ 
+     free(threadCtx);
+     return NULL;
+@@ -9452,6 +9453,8 @@ static void btrMgr_IncomingConnectionAuthenticationAsync(stBTRCoreDevStatusCBInf
+     }
+ 
+     /* Copy the status callback information */
++    /* Note: stBTRCoreDevStatusCBInfo contains only value types (no pointers),
++     * so memcpy is safe for deep copy */
+     memcpy(&threadCtx->statusCB, p_StatusCB, sizeof(stBTRCoreDevStatusCBInfo));
+     threadCtx->auth = 0;
+ 
+@@ -9737,7 +9740,7 @@ btrMgr_DeviceStatusCb (
+                             /* Disconnect gamepad LE */
+                             if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
+                                 btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+-                                BTRMGRLOG_INFO("Started authentication thread in separate thread\n");
++                                BTRMGRLOG_INFO("Started authentication thread\n");
+                             }
+                         break;
+                         }
 -- 
 2.53.0
 
