@@ -9438,7 +9438,7 @@ btrMgr_SpawnAuthenticationThread(
     BTRMgrDeviceHandle deviceHandle,
     const char* context
 ) {
-    stBTRMgrAuthThreadData *authData = (stBTRMgrAuthThreadData *)malloc(sizeof(stBTRMgrAuthThreadData));
+    stBTRMgrAuthThreadData *authData = (stBTRMgrAuthThreadData *)g_malloc(sizeof(stBTRMgrAuthThreadData));
     if (!authData) {
         BTRMGRLOG_ERROR("Failed to allocate memory for authentication thread data\n");
         return 0;
@@ -9455,7 +9455,7 @@ btrMgr_SpawnAuthenticationThread(
                                       (gpointer)authData);
     if (!authThread) {
         BTRMGRLOG_ERROR("Failed to create authentication thread\n");
-        free(authData);
+        g_free(authData);
         return 0;
     }
     
@@ -9513,7 +9513,7 @@ btrMgr_IncomingConnectionAuthenticationThread(gpointer data)
     }
     
     /* Free the allocated data */
-    free(authData);
+    g_free(authData);
     
     return NULL;
 }
@@ -9780,7 +9780,8 @@ btrMgr_DeviceStatusCb (
                             BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
                             /* Disconnect gamepad LE */
                             if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                /* Run authentication on separate thread to avoid blocking callback */
+                                /* Run authentication on separate thread to avoid blocking callback
+                                 * Note: Failure to spawn is logged internally; we break here regardless */
                                 btrMgr_SpawnAuthenticationThread(p_StatusCB, lstEventMessage.m_pairedDevice.m_deviceHandle, "disconnected state");
                             }
                         break;
