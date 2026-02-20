@@ -3975,10 +3975,7 @@ BTRMGR_Init (
     }
 #endif
 
-	char btmgr_name[] = "btmgr";
-	telemetry_init(btmgr_name);
-
-    /* Run telemetry test simulation if BTRMGR_TELEMETRY_TEST=1 is set */
+	/* Run telemetry test simulation if BTRMGR_TELEMETRY_TEST=1 is set */
     // btrMgr_TelemetryTestSimulation();
 	
     isDeinitInProgress = FALSE;
