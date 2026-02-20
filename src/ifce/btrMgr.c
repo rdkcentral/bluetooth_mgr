@@ -1668,7 +1668,7 @@ btrMgr_IncomingAuthCb(
     free(threadData);
 
     int auth = 0;
-    btrMgr_IncomingConnectionAuthentication (p_StatusCB,&auth);
+    btrMgr_IncomingConnectionAuthentication (&p_StatusCB,&auth);
     return NULL;
 }
 
