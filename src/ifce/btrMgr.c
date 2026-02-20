@@ -1646,13 +1646,25 @@ btrMgr_CheckIfDevicePrevDetected (
 
     return 0;
 }
+
+STATIC gpointer
+btrMgr_IncomingAuthCb(
+    gpointer gp_StatusCB
+)
+{
+    BTRMGRLOG_INFO("Thread created ...\n");
+    int auth = 0;
+    stBTRCoreDevStatusCBInfo*   p_StatusCB = (stBTRCoreDevStatusCBInfo*) gp_StatusCB;
+    btrMgr_IncomingConnectionAuthentication (p_StatusCB,&auth);
+    return NULL;
+}
+
 #ifndef LE_MODE
 STATIC gpointer
 btrMgr_ConnectCb(
     gpointer gpDeviceConnectionHdl
 )
 {
-
     BTRMGR_ConnectionInformation_t * deviceConnectionHdl = (BTRMGR_ConnectionInformation_t *) gpDeviceConnectionHdl;
     guint8 reconnectAttepts = 0;
     if (gpDeviceConnectionHdl == NULL)
@@ -1705,6 +1717,21 @@ btrMgr_ConnectBackToDevice(
     return 1;
 }
 #endif
+
+static unsigned char
+btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
+{
+    BTRMGRLOG_INFO("In thread creation function ...\n");
+    GThread* pIncomingAuthThread = NULL;
+    pIncomingAuthThread = g_thread_new("btrMgr_incoming_auth_thread", btrMgr_IncomingAuthCb, (gpointer) p_StatusCB);
+
+    if (!pIncomingAuthThread) {
+        BTRMGRLOG_ERROR("Could not create a thread to get the incoming authentication \n");
+        return 0;
+    }
+    g_thread_unref(pIncomingAuthThread);
+    return 1;
+}
 STATIC BTRMGR_DeviceType_t
 btrMgr_MapDeviceTypeFromCore (
     enBTRCoreDeviceClass    device_type
@@ -9590,13 +9617,12 @@ btrMgr_DeviceStatusCb (
                              enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
-                            int auth = 0;
-                            btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                            BTRMGRLOG_INFO("auth is -- %d, devId: %lld, addr: %s, appearance: 0x%x\n",
-                                           auth, p_StatusCB->deviceId, p_StatusCB->deviceAddress,
-                                           p_StatusCB->ui16DevAppearanceBleSpec);
-                            if (!auth)
-                                break;
+                            if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                BTRMGRLOG_INFO("Initiated the thread creation ...\n");
+			    } else {
+                                BTRMGRLOG_INFO("Failed to initiate a thread creation ...\n");
+                            }
+                            break;
                         }
 #endif //AUTO_CONNECT_ENABLED
                         if (ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) {
