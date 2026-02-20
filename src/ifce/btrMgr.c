@@ -675,7 +675,8 @@ BTRMGR_SetBroadcastState(
  * This function simulates all 22 telemetry markers for testing
  * Set BTRMGR_TELEMETRY_TEST=1 environment variable to enable testing
  */
-STATIC void
+#if 0
+ STATIC void
 btrMgr_TelemetryTestSimulation (
     void
 ) {
@@ -793,7 +794,7 @@ btrMgr_TelemetryTestSimulation (
     BTRMGRLOG_INFO("Total: 22 markers tested\n");
     BTRMGRLOG_INFO("============================================\n");
 }
-
+#endif
 #ifndef LE_MODE
 STATIC void
 btrMgr_CheckAudioInServiceAvailability (
