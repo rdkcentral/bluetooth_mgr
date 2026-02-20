@@ -172,6 +172,11 @@ typedef struct _BTRMGR_ConnectionInformation_t {
     unsigned char lui8AdapterIdx;
 } BTRMGR_ConnectionInformation_t;
 
+typedef struct _BTRMGR_IncomingAuthThreadData {
+    stBTRCoreDevStatusCBInfo statusCbInfo;
+} BTRMGR_IncomingAuthThreadData;
+
+
 //TODO: Move to a local handle. Mutex protect all
 STATIC GMainContext*                    gmainContext                = NULL;
 STATIC tBTRCoreHandle                   ghBTRCoreHdl                = NULL;
@@ -1652,8 +1657,17 @@ btrMgr_IncomingAuthCb(
     gpointer gp_StatusCB
 )
 {
+    BTRMGR_IncomingAuthThreadData* threadData = (BTRMGR_IncomingAuthThreadData*) gp_StatusCB;
+    stBTRCoreDevStatusCBInfo  p_StatusCB;
+
+    if (!threadData) {
+        return NULL;
+    }
+
+    p_StatusCB = threadData->statusCbInfo;
+    free(threadData);
+
     int auth = 0;
-    stBTRCoreDevStatusCBInfo*   p_StatusCB = (stBTRCoreDevStatusCBInfo*) gp_StatusCB;
     btrMgr_IncomingConnectionAuthentication (p_StatusCB,&auth);
     return NULL;
 }
@@ -1722,12 +1736,29 @@ STATIC unsigned char
 btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
 {
     GThread* pIncomingAuthThread = NULL;
-    pIncomingAuthThread = g_thread_new("btrMgr_incoming_auth_thread", btrMgr_IncomingAuthCb, (gpointer) p_StatusCB);
+    BTRMGR_IncomingAuthThreadData* threadData = NULL;
+
+    if (!p_StatusCB) {
+        BTRMGRLOG_ERROR("Invalid status callback info passed to btrMgr_StartIncomingAuthThread\n");
+        return 0;
+    }
+
+    threadData = (BTRMGR_IncomingAuthThreadData*)malloc(sizeof(BTRMGR_IncomingAuthThreadData));
+
+    if (!threadData) {
+        BTRMGRLOG_ERROR("Could not allocate memory for incoming authentication thread data\n");
+        return 0;
+    }
+
+    threadData->statusCbInfo = *p_StatusCB;
+    pIncomingAuthThread = g_thread_new("btrMgr_incoming_auth_thread", btrMgr_IncomingAuthCb, (gpointer)threadData);
 
     if (!pIncomingAuthThread) {
         BTRMGRLOG_ERROR("Could not create a thread to get the incoming authentication \n");
+        free(threadData);
         return 0;
     }
+
     g_thread_unref(pIncomingAuthThread);
     return 1;
 }
@@ -9618,8 +9649,8 @@ btrMgr_DeviceStatusCb (
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
                             if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
-                                BTRMGRLOG_INFO("Initiated a seperate thread to get the auto-connect confirmation from UI\n");
-							}
+                                BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                            }
                             break;
                         }
 #endif //AUTO_CONNECT_ENABLED
