@@ -1718,7 +1718,7 @@ btrMgr_ConnectBackToDevice(
 }
 #endif
 
-static unsigned char
+STATIC unsigned char
 btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
 {
     GThread* pIncomingAuthThread = NULL;
