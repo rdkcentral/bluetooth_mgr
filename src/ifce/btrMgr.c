@@ -1527,10 +1527,22 @@ btrMgr_GetDiscoveredDevInfo (
     int j = 0;
 
     for (j = 0; j < gListOfDiscoveredDevices.m_numOfDevices; j++) {
-        if (ahBTRMgrDevHdl == gListOfDiscoveredDevices.m_deviceProperty[j].m_deviceHandle) {
+    if (ahBTRMgrDevHdl == gListOfDiscoveredDevices.m_deviceProperty[j].m_deviceHandle) {
+        if (!btrMgr_IsDevNameSameAsAddress(
+                gListOfDiscoveredDevices.m_deviceProperty[j].m_name,
+                gListOfDiscoveredDevices.m_deviceProperty[j].m_deviceAddress,
+                strlen(gListOfDiscoveredDevices.m_deviceProperty[j].m_deviceAddress)
+            ))
+        {
             MEMCPY_S(apBtMgrDiscDevInfo,sizeof(BTRMGR_DiscoveredDevices_t), &gListOfDiscoveredDevices.m_deviceProperty[j], sizeof(BTRMGR_DiscoveredDevices_t));
         }
+        else {
+            BTRMGRLOG_WARN("Skipping discovered details and UI update for device %s (%s): name matches address\n",
+                gListOfDiscoveredDevices.m_deviceProperty[j].m_name,
+                gListOfDiscoveredDevices.m_deviceProperty[j].m_deviceAddress);
+        }
     }
+ }
 }
 
 
@@ -10131,9 +10143,20 @@ btrMgr_DeviceDiscoveryCb (
 
                 btrMgr_MapDevstatusInfoToEventInfo ((void*)&astBTRCoreDiscoveryCbInfo->device, &lstEventMessage, BTRMGR_EVENT_DEVICE_DISCOVERY_UPDATE);
 
-                if (gfpcBBTRMgrEventOut) {
+                
+                if (!btrMgr_IsDevNameSameAsAddress(
+                    lstEventMessage.m_discoveredDevice.m_name,
+                    lstEventMessage.m_discoveredDevice.m_deviceAddress,
+                    strlen(lstEventMessage.m_discoveredDevice.m_deviceAddress)))
+                    {
+                    if (gfpcBBTRMgrEventOut) {
                     gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
+                    }
                 }
+                else {
+                     BTRMGRLOG_INFO("Skipping device update-2: name is same as address\n");
+                }
+
             }
         }
     }
