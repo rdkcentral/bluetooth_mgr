@@ -252,6 +252,7 @@ STATIC BOOLEAN                          gIsDeviceAdvertising        = FALSE;
 STATIC BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
 STATIC BOOLEAN                          gEliteIncomCon              = FALSE;
 STATIC BOOLEAN                          gbGamepadStandbyMode        = FALSE;
+static GMutex                           gBtrMgrAuthMutex;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BOOLEAN                          gSkipVolumeUpdate           = FALSE;
 STATIC volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
@@ -1668,7 +1669,10 @@ btrMgr_IncomingAuthCb(
     free(threadData);
 
     int auth = 0;
+    g_mutex_lock(&gBtrMgrAuthMutex);
     btrMgr_IncomingConnectionAuthentication (&p_StatusCB,&auth);
+    g_mutex_unlock(&gBtrMgrAuthMutex);
+
     return NULL;
 }
 
@@ -6065,7 +6069,9 @@ BTRMGR_ConnectGamepads_StartUp (
 
 
             //recreate event that would have been received from the connectCb
+            g_mutex_lock(&gBtrMgrAuthMutex);
             btrMgr_IncomingConnectionAuthentication(&stRecreatedEvent, &auth);
+            g_mutex_unlock(&gBtrMgrAuthMutex);
 
             if (!auth)
                 continue;
@@ -9652,6 +9658,8 @@ btrMgr_DeviceStatusCb (
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
                             if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
                                 BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                            } else {
+                                BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
                             }
                             break;
                         }
@@ -9732,10 +9740,12 @@ btrMgr_DeviceStatusCb (
                             BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
                             /* Disconnect gamepad LE */
                             if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                 if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
-                                     BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
-                                 }
-                                 break;
+                                if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                    BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                                } else {
+                                    BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                }	
+                                break;
                             }
                         break;
                         }
@@ -9748,7 +9758,10 @@ btrMgr_DeviceStatusCb (
                             if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
                                 if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
                                     BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
-                                }
+                                } else {
+                                    BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                }	
+                                break;
                             } else {
                                 BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
                                 break;
