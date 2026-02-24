@@ -1672,6 +1672,39 @@ btrMgr_IncomingAuthCb(
     return NULL;
 }
 
+STATIC unsigned char
+btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
+{
+    GThread* pIncomingAuthThread = NULL;
+    BTRMGR_IncomingAuthThreadData* threadData = NULL;
+
+    if (!p_StatusCB) {
+        BTRMGRLOG_ERROR("Invalid status callback info passed to btrMgr_StartIncomingAuthThread\n");
+        return 0;
+    }
+
+    threadData = (BTRMGR_IncomingAuthThreadData*)malloc(sizeof(BTRMGR_IncomingAuthThreadData));
+
+    if (!threadData) {
+        BTRMGRLOG_ERROR("Could not allocate memory for incoming authentication thread data\n");
+        return 0;
+    }
+
+    threadData->statusCbInfo = *p_StatusCB;
+    pIncomingAuthThread = g_thread_new("btrMgr_incoming_auth_thread", btrMgr_IncomingAuthCb, (gpointer)threadData);
+
+    if (!pIncomingAuthThread) {
+        BTRMGRLOG_ERROR("Could not create a thread to get the incoming authentication \n");
+        free(threadData);
+        return 0;
+    }
+
+    /* coverity[leaked_storage] - memory is freed in pointer callback (thread was successfully created)*/
+    g_thread_unref(pIncomingAuthThread);
+    return 1;
+}
+
+
 #ifndef LE_MODE
 STATIC gpointer
 btrMgr_ConnectCb(
@@ -1731,37 +1764,6 @@ btrMgr_ConnectBackToDevice(
     return 1;
 }
 #endif
-
-STATIC unsigned char
-btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
-{
-    GThread* pIncomingAuthThread = NULL;
-    BTRMGR_IncomingAuthThreadData* threadData = NULL;
-
-    if (!p_StatusCB) {
-        BTRMGRLOG_ERROR("Invalid status callback info passed to btrMgr_StartIncomingAuthThread\n");
-        return 0;
-    }
-
-    threadData = (BTRMGR_IncomingAuthThreadData*)malloc(sizeof(BTRMGR_IncomingAuthThreadData));
-
-    if (!threadData) {
-        BTRMGRLOG_ERROR("Could not allocate memory for incoming authentication thread data\n");
-        return 0;
-    }
-
-    threadData->statusCbInfo = *p_StatusCB;
-    pIncomingAuthThread = g_thread_new("btrMgr_incoming_auth_thread", btrMgr_IncomingAuthCb, (gpointer)threadData);
-
-    if (!pIncomingAuthThread) {
-        BTRMGRLOG_ERROR("Could not create a thread to get the incoming authentication \n");
-        free(threadData);
-        return 0;
-    }
-
-    g_thread_unref(pIncomingAuthThread);
-    return 1;
-}
 
 STATIC BTRMGR_DeviceType_t
 btrMgr_MapDeviceTypeFromCore (
@@ -9729,10 +9731,11 @@ btrMgr_DeviceStatusCb (
                         if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected) {
                             BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
                             /* Disconnect gamepad LE */
-                            if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                int auth = 0;
-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                                BTRMGRLOG_INFO("auth: %d\n", auth);
+                            if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
+                                 if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                     BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                                 }
+                                 break;
                             }
                         break;
                         }
@@ -9743,10 +9746,9 @@ btrMgr_DeviceStatusCb (
                         if (p_StatusCB->eDevicePrevState == enBTRCoreDevStConnecting &&
                             lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) {
                             if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                int auth = 0;
-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                                if (!auth)
-                                    break;
+                                if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                    BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                                }
                             } else {
                                 BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
                                 break;
