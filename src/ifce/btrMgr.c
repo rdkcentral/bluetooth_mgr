@@ -252,7 +252,7 @@ STATIC BOOLEAN                          gIsDeviceAdvertising        = FALSE;
 STATIC BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
 STATIC BOOLEAN                          gEliteIncomCon              = FALSE;
 STATIC BOOLEAN                          gbGamepadStandbyMode        = FALSE;
-static GMutex                           gBtrMgrAuthMutex;
+static GMutex                           gBtrMgrAuthMutex            = G_MUTEX_INIT;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BOOLEAN                          gSkipVolumeUpdate           = FALSE;
 STATIC volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
