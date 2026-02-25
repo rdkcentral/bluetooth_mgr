@@ -1707,7 +1707,6 @@ btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
     return 1;
 }
 
-
 #ifndef LE_MODE
 STATIC gpointer
 btrMgr_ConnectCb(
