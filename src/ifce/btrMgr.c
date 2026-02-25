@@ -1669,9 +1669,7 @@ btrMgr_IncomingAuthCb(
     free(threadData);
 
     int auth = 0;
-    g_mutex_lock(&gBtrMgrAuthMutex);
     btrMgr_IncomingConnectionAuthentication (&p_StatusCB,&auth);
-    g_mutex_unlock(&gBtrMgrAuthMutex);
 
     return NULL;
 }
@@ -1703,6 +1701,7 @@ btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
         return 0;
     }
 
+    /* Ownership of threadData is passed to btrMgr_IncomingAuthCb, which frees it. */
     /* coverity[leaked_storage] - memory is freed in pointer callback (thread was successfully created)*/
     g_thread_unref(pIncomingAuthThread);
     return 1;
@@ -6069,9 +6068,7 @@ BTRMGR_ConnectGamepads_StartUp (
 
 
             //recreate event that would have been received from the connectCb
-            g_mutex_lock(&gBtrMgrAuthMutex);
             btrMgr_IncomingConnectionAuthentication(&stRecreatedEvent, &auth);
-            g_mutex_unlock(&gBtrMgrAuthMutex);
 
             if (!auth)
                 continue;
@@ -9448,12 +9445,14 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
     strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, ((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress,
             strlen(((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress) < BTRMGR_NAME_LEN_MAX ? strlen (((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress) : BTRMGR_NAME_LEN_MAX - 1);
 
+    g_mutex_lock(&gBtrMgrAuthMutex);
     if (gfpcBBTRMgrEventOut) {
         gfpcBBTRMgrEventOut(lstEventMessage);
     }
 
     BTRMGR_GetPairedDevices (lstEventMessage.m_adapterIndex, &gListOfPairedDevices);
     BTRMGRLOG_INFO("Wating for the external connection response from UI for LE HID device\n");
+
     unsigned int ui32sleepIdx = 40;
     do {
         usleep(500000);
@@ -9476,6 +9475,7 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
         }
     gEventRespReceived = 0;
     }
+    g_mutex_unlock(&gBtrMgrAuthMutex);
 }
 
 STATIC enBTRCoreRet
@@ -9660,6 +9660,9 @@ btrMgr_DeviceStatusCb (
                                 BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
                             } else {
                                 BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) == enBTRCoreSuccess) {
+                                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstEventMessage.m_pairedDevice.m_deviceHandle);
+                                }
                             }
                             break;
                         }
@@ -9744,6 +9747,9 @@ btrMgr_DeviceStatusCb (
                                     BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
                                 } else {
                                     BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
+                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                                    }
                                 }	
                                 break;
                             }
@@ -9760,6 +9766,9 @@ btrMgr_DeviceStatusCb (
                                     BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
                                 } else {
                                     BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
+                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                                    }
                                 }	
                                 break;
                             } else {
