@@ -9748,7 +9748,7 @@ btrMgr_DeviceStatusCb (
                                 } else {
                                     BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
                                     if (BTRCore_DisconnectDevice (ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
-                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstEventMessage.m_pairedDevice.m_deviceHandle);
                                     }
                                 }	
                                 break;
@@ -9767,7 +9767,7 @@ btrMgr_DeviceStatusCb (
                                 } else {
                                     BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
                                     if (BTRCore_DisconnectDevice (ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
-                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
+                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstEventMessage.m_pairedDevice.m_deviceHandle);
                                     }
                                 }	
                                 break;
