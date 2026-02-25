@@ -9443,6 +9443,7 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
     strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, ((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress,
             strlen(((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress) < BTRMGR_NAME_LEN_MAX ? strlen (((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress) : BTRMGR_NAME_LEN_MAX - 1);
 
+    /* coverity[LOCK] - Lock held during authentication wait (max 40s) to ensure atomic access to shared state; timeout prevents deadlock. */
     g_mutex_lock(&gBtrMgrAuthMutex);
     if (gfpcBBTRMgrEventOut) {
         gfpcBBTRMgrEventOut(lstEventMessage);
