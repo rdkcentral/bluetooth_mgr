@@ -4894,7 +4894,7 @@ BTRMGR_GetDiscoveredDevices_Internal (
             BTRMGRLOG_DEBUG ("Successful\n");
         }
         else {
-            BTRMGRLOG_WARN("No Device is found yet\n");
+            BTRMGRLOG_DEBUG("No Device is found yet\n");
         }
     }
 
@@ -5338,7 +5338,7 @@ BTRMGR_GetPairedDevices (
                 lpstBtrMgrPDevice->m_ui32DevClassBtSpec = lstBtrCoreListOfPDevices.devices[i].ui32DevClassBtSpec;
                 lpstBtrMgrPDevice->m_ui16DevAppearanceBleSpec = lstBtrCoreListOfPDevices.devices[i].ui16DevAppearanceBleSpec;
 
-                BTRMGRLOG_INFO ("Paired Device ID = %lld Connected = %d Dev Address = %s Dev Type = %d\n", lstBtrCoreListOfPDevices.devices[i].tDeviceId, lstBtrCoreListOfPDevices.devices[i].bDeviceConnected, lpstBtrMgrPDevice->m_deviceAddress,lpstBtrMgrPDevice->m_deviceType);
+                BTRMGRLOG_DEBUG ("Paired Device ID = %lld Connected = %d Dev Address = %s Dev Type = %d\n", lstBtrCoreListOfPDevices.devices[i].tDeviceId, lstBtrCoreListOfPDevices.devices[i].bDeviceConnected, lpstBtrMgrPDevice->m_deviceAddress,lpstBtrMgrPDevice->m_deviceType);
                 //BTRMGRLOG_INFO("Dev Address = %s Dev Type = %d \n",lpstBtrMgrPDevice->m_deviceAddress,lpstBtrMgrPDevice->m_deviceType);
 
                 lpstBtrMgrPDevice->m_serviceInfo.m_numOfService = lstBtrCoreListOfPDevices.devices[i].stDeviceProfile.numberOfService;
@@ -5357,7 +5357,7 @@ BTRMGR_GetPairedDevices (
             BTRMGRLOG_TRACE ("Successful\n");
         }
         else {
-            BTRMGRLOG_WARN("No Device is paired yet\n");
+            BTRMGRLOG_DEBUG("No Device is paired yet\n");
         }
     }
 
@@ -5664,7 +5664,7 @@ BTRMGR_GetConnectedDevices (
             }
         }
         else {
-            BTRMGRLOG_WARN("No Device in paired list\n");
+            BTRMGRLOG_DEBUG("No Device in paired list\n");
         }
     }
 
@@ -5726,7 +5726,7 @@ BTRMGR_GetConnectedDevices (
             }
         }
         else {
-            BTRMGRLOG_WARN("No Device in scan list\n");
+            BTRMGRLOG_DEBUG("No Device in scan list\n");
         }
     }
 
