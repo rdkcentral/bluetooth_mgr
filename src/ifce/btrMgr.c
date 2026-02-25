@@ -176,7 +176,6 @@ typedef struct _BTRMGR_IncomingAuthThreadData {
     stBTRCoreDevStatusCBInfo statusCbInfo;
 } BTRMGR_IncomingAuthThreadData;
 
-
 //TODO: Move to a local handle. Mutex protect all
 STATIC GMainContext*                    gmainContext                = NULL;
 STATIC tBTRCoreHandle                   ghBTRCoreHdl                = NULL;
