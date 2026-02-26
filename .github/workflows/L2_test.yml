@@ -58,7 +58,7 @@ jobs:
           export CPPFLAGS='-I${{ github.workspace }}/local/include  -Wno-error=unused-result -Wno-error=stringop-truncation -L${{ github.workspace }}/local/lib' 
           export CFLAGS='-Wno-error'
           export CXXFLAGS='-Wno-error'
-          ./configure --prefix=${{ github.workspace }}/local/ --enable-btr-ifce=bluez5
+          ./configure --prefix=${{ github.workspace }}/local/ --enable-btr-ifce=bluez5 --enable-telemetry=no
           make V=1
           make install
 
