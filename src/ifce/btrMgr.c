@@ -9450,7 +9450,7 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
     }
 
     BTRMGR_GetPairedDevices (lstEventMessage.m_adapterIndex, &gListOfPairedDevices);
-    BTRMGRLOG_INFO("Waiting for the external connection response from UI for LE HID device\n");
+    BTRMGRLOG_INFO("Waiting for the external connection response from UI for LE HID device \n");
     unsigned int ui32sleepIdx = 40;
     do {
         // coverity[SLEEP]
