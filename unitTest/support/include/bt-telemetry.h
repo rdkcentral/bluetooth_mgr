@@ -20,7 +20,7 @@
 #ifndef __BT_TELEMETRY_H__
 #define __BT_TELEMETRY_H__
 
-int telemetry_init(const char *appName);
+int telemetry_init(char *appName);
 int telemetry_event_s(const char *marker, const char *value);
 int telemetry_event_d(const char *marker, int value);
 
