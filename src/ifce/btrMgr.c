@@ -172,6 +172,10 @@ typedef struct _BTRMGR_ConnectionInformation_t {
     unsigned char lui8AdapterIdx;
 } BTRMGR_ConnectionInformation_t;
 
+typedef struct _BTRMGR_IncomingAuthThreadData {
+    stBTRCoreDevStatusCBInfo statusCbInfo;
+} BTRMGR_IncomingAuthThreadData;
+
 //TODO: Move to a local handle. Mutex protect all
 STATIC GMainContext*                    gmainContext                = NULL;
 STATIC tBTRCoreHandle                   ghBTRCoreHdl                = NULL;
@@ -247,6 +251,7 @@ STATIC BOOLEAN                          gIsDeviceAdvertising        = FALSE;
 STATIC BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
 STATIC BOOLEAN                          gEliteIncomCon              = FALSE;
 STATIC BOOLEAN                          gbGamepadStandbyMode        = FALSE;
+static GMutex                           gBtrMgrAuthMutex;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BOOLEAN                          gSkipVolumeUpdate           = FALSE;
 STATIC volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
@@ -1646,6 +1651,61 @@ btrMgr_CheckIfDevicePrevDetected (
 
     return 0;
 }
+
+STATIC gpointer
+btrMgr_IncomingAuthCb(
+    gpointer gp_StatusCB
+)
+{
+    BTRMGR_IncomingAuthThreadData* threadData = (BTRMGR_IncomingAuthThreadData*) gp_StatusCB;
+    stBTRCoreDevStatusCBInfo  p_StatusCB;
+
+    if (!threadData) {
+        return NULL;
+    }
+
+    p_StatusCB = threadData->statusCbInfo;
+    free(threadData);
+
+    int auth = 0;
+    btrMgr_IncomingConnectionAuthentication (&p_StatusCB,&auth);
+
+    return NULL;
+}
+
+STATIC unsigned char
+btrMgr_StartIncomingAuthThread (stBTRCoreDevStatusCBInfo* p_StatusCB)
+{
+    GThread* pIncomingAuthThread = NULL;
+    BTRMGR_IncomingAuthThreadData* threadData = NULL;
+
+    if (!p_StatusCB) {
+        BTRMGRLOG_ERROR("Invalid status callback info passed to btrMgr_StartIncomingAuthThread\n");
+        return 0;
+    }
+
+    threadData = (BTRMGR_IncomingAuthThreadData*)malloc(sizeof(BTRMGR_IncomingAuthThreadData));
+
+    if (!threadData) {
+        BTRMGRLOG_ERROR("Could not allocate memory for incoming authentication thread data\n");
+        return 0;
+    }
+
+    threadData->statusCbInfo = *p_StatusCB;
+    pIncomingAuthThread = g_thread_new("btrMgr_incoming_auth_thread", btrMgr_IncomingAuthCb, (gpointer)threadData);
+
+    if (!pIncomingAuthThread) {
+        BTRMGRLOG_ERROR("Could not create a thread to get the incoming authentication \n");
+        free(threadData);
+        return 0;
+    }
+
+    /* Ownership of threadData is passed to btrMgr_IncomingAuthCb, which frees it. */
+    /* coverity[leaked_storage] - memory is freed in pointer callback (thread was successfully created)*/
+    g_thread_unref(pIncomingAuthThread);
+    return 1;
+}
+
 #ifndef LE_MODE
 STATIC gpointer
 btrMgr_ConnectCb(
@@ -1705,6 +1765,7 @@ btrMgr_ConnectBackToDevice(
     return 1;
 }
 #endif
+
 STATIC BTRMGR_DeviceType_t
 btrMgr_MapDeviceTypeFromCore (
     enBTRCoreDeviceClass    device_type
@@ -9381,14 +9442,17 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
     strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, ((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress,
             strlen(((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress) < BTRMGR_NAME_LEN_MAX ? strlen (((stBTRCoreDevStatusCBInfo*)p_StatusCB)->deviceAddress) : BTRMGR_NAME_LEN_MAX - 1);
 
+    /* coverity[LOCK] - Lock held during authentication wait (max 40s) to ensure atomic access to shared state; timeout prevents deadlock. */
+    g_mutex_lock(&gBtrMgrAuthMutex);
     if (gfpcBBTRMgrEventOut) {
         gfpcBBTRMgrEventOut(lstEventMessage);
     }
 
     BTRMGR_GetPairedDevices (lstEventMessage.m_adapterIndex, &gListOfPairedDevices);
-    BTRMGRLOG_INFO("Wating for the external connection response from UI for LE HID device\n");
+    BTRMGRLOG_INFO("Waiting for the external connection response from UI for LE HID device \n");
     unsigned int ui32sleepIdx = 40;
     do {
+        // coverity[SLEEP]
         usleep(500000);
     } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
     if (gEventRespReceived == 0) {
@@ -9409,6 +9473,7 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
         }
     gEventRespReceived = 0;
     }
+    g_mutex_unlock(&gBtrMgrAuthMutex);
 }
 
 STATIC enBTRCoreRet
@@ -9589,13 +9654,15 @@ btrMgr_DeviceStatusCb (
                              enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
-                            int auth = 0;
-                            btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                            BTRMGRLOG_INFO("auth is -- %d, devId: %lld, addr: %s, appearance: 0x%x\n",
-                                           auth, p_StatusCB->deviceId, p_StatusCB->deviceAddress,
-                                           p_StatusCB->ui16DevAppearanceBleSpec);
-                            if (!auth)
-                                break;
+                            if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                            } else {
+                                BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
+                                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstEventMessage.m_pairedDevice.m_deviceHandle);
+                                }
+                            }
+                            break;
                         }
 #endif //AUTO_CONNECT_ENABLED
                         if (ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) {
@@ -9673,10 +9740,16 @@ btrMgr_DeviceStatusCb (
                         if(p_StatusCB->eDevicePrevState == enBTRCoreDevStDisconnected) {
                             BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
                             /* Disconnect gamepad LE */
-                            if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                int auth = 0;
-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                                BTRMGRLOG_INFO("auth: %d\n", auth);
+                            if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
+                                if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                    BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                                } else {
+                                    BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
+                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstEventMessage.m_pairedDevice.m_deviceHandle);
+                                    }
+                                }	
+                                break;
                             }
                         break;
                         }
@@ -9687,10 +9760,15 @@ btrMgr_DeviceStatusCb (
                         if (p_StatusCB->eDevicePrevState == enBTRCoreDevStConnecting &&
                             lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) {
                             if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                int auth = 0;
-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                                if (!auth)
-                                    break;
+                                if (btrMgr_StartIncomingAuthThread(p_StatusCB)) {
+                                    BTRMGRLOG_INFO("Initiated a separate thread to get the auto-connect confirmation from UI\n");
+                                } else {
+                                    BTRMGRLOG_ERROR("Thread creation failed to get the auth response from UI. \n");
+                                    if (BTRCore_DisconnectDevice (ghBTRCoreHdl, lstEventMessage.m_pairedDevice.m_deviceHandle, enBTRCoreHID) != enBTRCoreSuccess) {
+                                        BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstEventMessage.m_pairedDevice.m_deviceHandle);
+                                    }
+                                }	
+                                break;
                             } else {
                                 BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
                                 break;
