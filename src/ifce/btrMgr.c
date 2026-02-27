@@ -675,7 +675,7 @@ BTRMGR_SetBroadcastState(
  * This function simulates all 22 telemetry markers for testing
  * Set BTRMGR_TELEMETRY_TEST=1 environment variable to enable testing
  */
-#if 0
+#if 1
  STATIC void
 btrMgr_TelemetryTestSimulation (
     void
@@ -3978,7 +3978,7 @@ BTRMGR_Init (
 	char btmgr_name[] = "btmgr";
 	telemetry_init(btmgr_name);
 	/* Run telemetry test simulation if BTRMGR_TELEMETRY_TEST=1 is set */
-    // btrMgr_TelemetryTestSimulation();
+    btrMgr_TelemetryTestSimulation();
 	
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
