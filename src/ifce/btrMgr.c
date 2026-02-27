@@ -172,6 +172,10 @@ typedef struct _BTRMGR_ConnectionInformation_t {
     unsigned char lui8AdapterIdx;
 } BTRMGR_ConnectionInformation_t;
 
+typedef struct _BTRMGR_AuthenticationThreadData_t {
+    stBTRCoreDevStatusCBInfo statusCB;
+} BTRMGR_AuthenticationThreadData_t;
+
 //TODO: Move to a local handle. Mutex protect all
 STATIC GMainContext*                    gmainContext                = NULL;
 STATIC tBTRCoreHandle                   ghBTRCoreHdl                = NULL;
@@ -332,6 +336,7 @@ static inline void btrMgr_SetAgentActivated (unsigned char aui8AgentActivated);
 static inline unsigned char btrMgr_GetAgentActivated (void);
 
 void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusCB, int *auth);
+STATIC void btrMgr_IncomingConnectionAuthenticationAsync(stBTRCoreDevStatusCBInfo* p_StatusCB);
 #ifdef LE_MODE
 static void btrMgr_CheckBroadcastAvailability (void);
 #else
@@ -9365,6 +9370,99 @@ btrMgr_SDStatusCb (
     return leBtrMgrSdRet;
 }
 
+STATIC gpointer
+btrMgr_IncomingConnectionAuthenticationThread(
+    gpointer apvThreadData
+) {
+    BTRMGR_AuthenticationThreadData_t* authThreadData = (BTRMGR_AuthenticationThreadData_t*)apvThreadData;
+    if (!authThreadData) {
+        BTRMGRLOG_ERROR("Invalid thread data for authentication\n");
+        return NULL;
+    }
+
+    stBTRCoreDevStatusCBInfo* p_StatusCB = &authThreadData->statusCB;
+    BTRMGR_EventMessage_t lstEventMessage;
+    MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+
+    lstEventMessage.m_adapterIndex = 0;
+    lstEventMessage.m_eventType    = BTRMGR_EVENT_RECEIVED_EXTERNAL_CONNECT_REQUEST;
+    lstEventMessage.m_externalDevice.m_deviceHandle = p_StatusCB->deviceId;
+    lstEventMessage.m_externalDevice.m_deviceType = btrMgr_MapDeviceTypeFromCore(p_StatusCB->eDeviceClass);
+    lstEventMessage.m_externalDevice.m_isLowEnergyDevice = 0;
+    lstEventMessage.m_externalDevice.m_vendorID = 0;
+    strncpy(lstEventMessage.m_externalDevice.m_name, p_StatusCB->deviceName,
+            strlen(p_StatusCB->deviceName) < BTRMGR_NAME_LEN_MAX ? strlen(p_StatusCB->deviceName) : BTRMGR_NAME_LEN_MAX - 1);
+    strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, p_StatusCB->deviceAddress,
+            strlen(p_StatusCB->deviceAddress) < BTRMGR_NAME_LEN_MAX ? strlen(p_StatusCB->deviceAddress) : BTRMGR_NAME_LEN_MAX - 1);
+
+    if (gfpcBBTRMgrEventOut) {
+        gfpcBBTRMgrEventOut(lstEventMessage);
+    }
+
+    /* Note: Access to global variables gEventRespReceived, gAcceptConnection, and gListOfPairedDevices
+     * is not protected by mutexes. This maintains the same thread safety characteristics as the 
+     * original blocking implementation. For production hardening, consider adding mutex protection. */
+    BTRMGR_GetPairedDevices(lstEventMessage.m_adapterIndex, &gListOfPairedDevices);
+    BTRMGRLOG_INFO("Waiting for the external connection response from UI for LE HID device (in thread)\n");
+    unsigned int ui32sleepIdx = 40;
+    do {
+        usleep(500000);
+    } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
+
+    int auth = 0;
+    if (gEventRespReceived == 0) {
+        BTRMGRLOG_INFO("External connection response not received from UI for LE HID device, So disconnecting the device.\n");
+        auth = 0;
+        if (BTRCore_DisconnectDevice(ghBTRCoreHdl, p_StatusCB->deviceId, enBTRCoreHID) == enBTRCoreSuccess) {
+            BTRMGRLOG_INFO("Disconnected an LE HID device successfully\n");
+        }
+    } else {
+        auth = gAcceptConnection;
+        if (gAcceptConnection) {
+            BTRMGRLOG_INFO("Incoming Connection accepted for LE HID device based on the response from UI\n");
+        } else {
+            BTRMGRLOG_INFO("Incoming Connection rejected for LE HID device based on the response from UI, So disconnecting it\n");
+            if (BTRCore_DisconnectDevice(ghBTRCoreHdl, p_StatusCB->deviceId, enBTRCoreHID) == enBTRCoreSuccess) {
+                BTRMGRLOG_INFO("Disconnected an LE HID device successfully\n");
+            }
+        }
+        gEventRespReceived = 0;
+    }
+
+    free(authThreadData);
+    return NULL;
+}
+
+STATIC void
+btrMgr_IncomingConnectionAuthenticationAsync(
+    stBTRCoreDevStatusCBInfo* p_StatusCB
+) {
+    if (!p_StatusCB) {
+        BTRMGRLOG_ERROR("Invalid status callback info\n");
+        return;
+    }
+
+    BTRMGR_AuthenticationThreadData_t* authThreadData = (BTRMGR_AuthenticationThreadData_t*)malloc(sizeof(BTRMGR_AuthenticationThreadData_t));
+    if (!authThreadData) {
+        BTRMGRLOG_ERROR("Failed to allocate memory for authentication thread data\n");
+        return;
+    }
+
+    memcpy(&authThreadData->statusCB, p_StatusCB, sizeof(stBTRCoreDevStatusCBInfo));
+
+    GThread* pAuthThread = g_thread_new("btrMgr_auth_thread", btrMgr_IncomingConnectionAuthenticationThread, (gpointer)authThreadData);
+    if (!pAuthThread) {
+        BTRMGRLOG_ERROR("Could not create thread for incoming connection authentication\n");
+        free(authThreadData);
+        return;
+    }
+
+    /* g_thread_unref allows thread to run independently without blocking.
+     * Thread will clean up when it completes. Same pattern as btrMgr_ConnectBackToDevice. */
+    g_thread_unref(pAuthThread);
+    BTRMGRLOG_INFO("Launched authentication thread for device %lld\n", p_StatusCB->deviceId);
+}
+
 void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusCB, int *auth)
 {
     BTRMGR_EventMessage_t lstEventMessage;
@@ -9589,13 +9687,10 @@ btrMgr_DeviceStatusCb (
                              enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) &&
                             (lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlPairingInProgress)) {
-                            int auth = 0;
-                            btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                            BTRMGRLOG_INFO("auth is -- %d, devId: %lld, addr: %s, appearance: 0x%x\n",
-                                           auth, p_StatusCB->deviceId, p_StatusCB->deviceAddress,
+                            btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+                            BTRMGRLOG_INFO("Launched async auth for devId: %lld, addr: %s, appearance: 0x%x\n",
+                                           p_StatusCB->deviceId, p_StatusCB->deviceAddress,
                                            p_StatusCB->ui16DevAppearanceBleSpec);
-                            if (!auth)
-                                break;
                         }
 #endif //AUTO_CONNECT_ENABLED
                         if (ghBTRMgrDevHdlLastDisconnected == lstEventMessage.m_pairedDevice.m_deviceHandle) {
@@ -9674,9 +9769,8 @@ btrMgr_DeviceStatusCb (
                             BTRMGRLOG_INFO("AppearanceBleSpec: 0x%x\n", p_StatusCB->ui16DevAppearanceBleSpec);
                             /* Disconnect gamepad LE */
                             if(p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                int auth = 0;
-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                                BTRMGRLOG_INFO("auth: %d\n", auth);
+                                btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+                                BTRMGRLOG_INFO("Launched async auth for disconnected device\n");
                             }
                         break;
                         }
@@ -9687,10 +9781,8 @@ btrMgr_DeviceStatusCb (
                         if (p_StatusCB->eDevicePrevState == enBTRCoreDevStConnecting &&
                             lstEventMessage.m_pairedDevice.m_deviceHandle != ghBTRMgrDevHdlConnInProgress) {
                             if (p_StatusCB->ui16DevAppearanceBleSpec == BTRMGR_HID_GAMEPAD_LE_APPEARANCE) {
-                                int auth = 0;
-                                btrMgr_IncomingConnectionAuthentication(p_StatusCB,&auth);
-                                if (!auth)
-                                    break;
+                                btrMgr_IncomingConnectionAuthenticationAsync(p_StatusCB);
+                                BTRMGRLOG_INFO("Launched async auth for connecting device\n");
                             } else {
                                 BTRMGRLOG_INFO("Connect method will be triggered from UI based on the connect request event on connection authorization\n");
                                 break;
