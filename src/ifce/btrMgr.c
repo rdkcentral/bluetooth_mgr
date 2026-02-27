@@ -4092,12 +4092,11 @@ BTRMGR_DeInit (
 
             BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
             isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_serviceInfo,lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
-            if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
-                BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
-            }
-
-            /* Removed the wait time for disconnection confirmation from BlueZ for remote devices. */
+            /* Remove disconnect for Remote Control devices */
             if (!isRemoteDev) {
+                if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
+                    BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                }
                 do {
                     unsigned int ui32sleepIdx = 2;
 
@@ -6150,151 +6149,151 @@ BTRMGR_StartAudioStreamingOut_StartUp (
     BTRMGRLOG_INFO ("Successfully get all profiles\n");
     BTRCore_GetAdapterAddr(ghBTRCoreHdl, aui8AdapterIdx, lui8adapterAddr);
 
-    if (strcmp(lstPersistentData.adapterId, lui8adapterAddr) == 0) {
-        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_INPROGRESS;
-        numOfProfiles = lstPersistentData.numOfProfiles;
+    if (strcmp(lstPersistentData.adapterId, lui8adapterAddr) != 0) {
+        BTRMGRLOG_ERROR ("Persistant adapter information does not match current adapter address: %s != %s\n", lstPersistentData.adapterId, lui8adapterAddr);
+    }
+    gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_INPROGRESS;
+    numOfProfiles = lstPersistentData.numOfProfiles;
 
-        BTRMGRLOG_DEBUG ("Adapter matches = %s\n", lui8adapterAddr);
-        BTRMGRLOG_DEBUG ("Number of Profiles = %d\n", numOfProfiles);
+    BTRMGRLOG_DEBUG ("Adapter matches = %s\n", lui8adapterAddr);
+    BTRMGRLOG_DEBUG ("Number of Profiles = %d\n", numOfProfiles);
 
-        for (i32ProfileIdx = 0; i32ProfileIdx < numOfProfiles; i32ProfileIdx++) {
-            deviceCount = lstPersistentData.profileList[i32ProfileIdx].numOfDevices;
+    for (i32ProfileIdx = 0; i32ProfileIdx < numOfProfiles; i32ProfileIdx++) {
+        deviceCount = lstPersistentData.profileList[i32ProfileIdx].numOfDevices;
 
-            for (i32DeviceIdx = 0; i32DeviceIdx < deviceCount ; i32DeviceIdx++) {
-                lDeviceHandle   = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].deviceId;
-                isConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].isConnected;
-                lastConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].lastConnected;
+        for (i32DeviceIdx = 0; i32DeviceIdx < deviceCount ; i32DeviceIdx++) {
+            lDeviceHandle   = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].deviceId;
+            isConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].isConnected;
+            lastConnected     = lstPersistentData.profileList[i32ProfileIdx].deviceList[i32DeviceIdx].lastConnected;
 
-                if ((lastConnected || isConnected) && lDeviceHandle) {
-                    if(strcmp(lstPersistentData.profileList[i32ProfileIdx].profileId, BTRMGR_A2DP_SINK_PROFILE_ID) == 0) {
-                        char                   lPropValue[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
-                        BTRMGR_SysDiagChar_t   lenDiagElement = BTRMGR_SYS_DIAG_POWERSTATE;
+            if ((lastConnected || isConnected) && lDeviceHandle) {
+                if(strcmp(lstPersistentData.profileList[i32ProfileIdx].profileId, BTRMGR_A2DP_SINK_PROFILE_ID) == 0) {
+                    char                   lPropValue[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
+                    BTRMGR_SysDiagChar_t   lenDiagElement = BTRMGR_SYS_DIAG_POWERSTATE;
 
-                        if (eBTRMgrSuccess != BTRMGR_SD_GetData(ghBTRMgrSdHdl, lenDiagElement, lPropValue)) {
-                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
-                            BTRMGRLOG_ERROR("Could not get diagnostic data\n");
-                            lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
-                        }
-#ifdef AUTO_CONNECT_ENABLED
-                        //Before automatically starting audio, we should check if the device is connectable and then ask the upper layers
-                        unsigned int ui32sleepTimeOut = 2;
-                        unsigned int ui32confirmIdx = 2;
-
-                        do {
-                            unsigned int ui32sleepIdx = 1;
-                            do {
-                                sleep(ui32sleepTimeOut);
-                                lenBtrCoreRet = BTRCore_IsDeviceConnectable(ghBTRCoreHdl, lDeviceHandle);
-                            } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
-                        } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32confirmIdx));
-
-                        if (lenBtrCoreRet != enBTRCoreSuccess)
-                            continue;
-
-                        if ((btrMgr_GetDevPaired(lDeviceHandle))
-                            && ghBTRMgrDevHdlCurStreaming == 0 ) {
-                            if (lDeviceHandle == ghBTRMgrDevHdlStreamStartUp) {
-                                BTRMGRLOG_INFO("Pairing/Connection in progress for this audio device, so accepting the connection\n");
-                            }
-
-                            stBTRCoreBTDevice stDeviceInfo;
-                            MEMSET_S(&stDeviceInfo, sizeof(stBTRCoreBTDevice), 0, sizeof(stBTRCoreBTDevice));
-                            if (eBTRMgrSuccess != btrMgr_GetDeviceDetails(lDeviceHandle,&stDeviceInfo)) {
-                                BTRMGRLOG_ERROR("Could not get device details\n");
-                                continue;
-                            }
-                            BTRMGR_EventMessage_t lstEventMessage;
-                            MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
-                            lstEventMessage.m_eventType                            = BTRMGR_EVENT_RECEIVED_EXTERNAL_CONNECT_REQUEST;
-                            lstEventMessage.m_externalDevice.m_deviceHandle        = lDeviceHandle;
-                            lstEventMessage.m_externalDevice.m_deviceType          = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
-                            lstEventMessage.m_externalDevice.m_vendorID            = stDeviceInfo.ui32ModaliasVendorId;
-                            lstEventMessage.m_externalDevice.m_isLowEnergyDevice   = 0;
-                            strncpy(lstEventMessage.m_externalDevice.m_name, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
-                            strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
-
-                            //TODO: Check if XRE wants to bring up a Pop-up or Respond
-                            if (gfpcBBTRMgrEventOut) {
-                                gfpcBBTRMgrEventOut(lstEventMessage);     /* Post a callback */
-                            }
-
-                            {   /* Max 200msec timeout - Polled at 50ms second interval */
-                                unsigned int ui32sleepIdx = 4;
-
-                                do {
-                                    usleep(50000);
-                                } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
-
-                            }
-                            if (gEventRespReceived == 0) {
-                                if (!lbSecondAttempt)
-                                {
-                                    BTRMGRLOG_INFO("External connection response not received from UI Audio Out device - it is possible UI is not up yet, try again if device is there in 40 seconds\n");
-                                    btrMgr_SetAutoconnectOnStartUpTimer();
-                                    return BTRMGR_RESULT_SUCCESS;
-                                }
-                                else
-                                {
-                                    BTRMGRLOG_WARN("External connection response not received from UI Audio Out device for a second time\n");
-                                    api32ConnInAuthResp = 0;
-                                }
-                            } else {
-                                api32ConnInAuthResp = gAcceptConnection;
-                                if (gAcceptConnection) {
-                                    BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
-                                } else {
-                                    BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
-                                    if (strstr(stDeviceInfo.pcDeviceName, "AirPods") ||
-                                        (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_APPLE_VENDOR_ID_1) ||
-                                        (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_APPLE_VENDOR_ID_2)) {
-                                         BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
-                                         btrMgr_ClearDisconnDevHoldOffTimer();
-                                         btrMgr_SetDisconnDevHoldOffTimer(stDeviceInfo.tDeviceId);
-                                    }
-                                }
-                                gEventRespReceived = 0;
-                            }
-                        }
-                        else {
-                            BTRMGRLOG_ERROR ("Incoming Connection denied\n");
-                            api32ConnInAuthResp = 0;
-                        }
-                        //expect UI to connect to device to start stream
-                        if(api32ConnInAuthResp)
-                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
-                        else
-                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
+                    if (eBTRMgrSuccess != BTRMGR_SD_GetData(ghBTRMgrSdHdl, lenDiagElement, lPropValue)) {
+                        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
+                        BTRMGRLOG_ERROR("Could not get diagnostic data\n");
+                        lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
                     }
+#ifdef AUTO_CONNECT_ENABLED
+                    //Before automatically starting audio, we should check if the device is connectable and then ask the upper layers
+                    unsigned int ui32sleepTimeOut = 2;
+                    unsigned int ui32confirmIdx = 2;
+
+                    do {
+                        unsigned int ui32sleepIdx = 1;
+                        do {
+                            sleep(ui32sleepTimeOut);
+                            lenBtrCoreRet = BTRCore_IsDeviceConnectable(ghBTRCoreHdl, lDeviceHandle);
+                        } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
+                    } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32confirmIdx));
+
+                    if (lenBtrCoreRet != enBTRCoreSuccess)
+                        continue;
+
+                    if ((btrMgr_GetDevPaired(lDeviceHandle))
+                        && ghBTRMgrDevHdlCurStreaming == 0 ) {
+                        if (lDeviceHandle == ghBTRMgrDevHdlStreamStartUp) {
+                            BTRMGRLOG_INFO("Pairing/Connection in progress for this audio device, so accepting the connection\n");
+                        }
+
+                        stBTRCoreBTDevice stDeviceInfo;
+                        MEMSET_S(&stDeviceInfo, sizeof(stBTRCoreBTDevice), 0, sizeof(stBTRCoreBTDevice));
+                        if (eBTRMgrSuccess != btrMgr_GetDeviceDetails(lDeviceHandle,&stDeviceInfo)) {
+                            BTRMGRLOG_ERROR("Could not get device details\n");
+                            continue;
+                        }
+                        BTRMGR_EventMessage_t lstEventMessage;
+                        MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+                        lstEventMessage.m_eventType                            = BTRMGR_EVENT_RECEIVED_EXTERNAL_CONNECT_REQUEST;
+                        lstEventMessage.m_externalDevice.m_deviceHandle        = lDeviceHandle;
+                        lstEventMessage.m_externalDevice.m_deviceType          = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
+                        lstEventMessage.m_externalDevice.m_vendorID            = stDeviceInfo.ui32ModaliasVendorId;
+                        lstEventMessage.m_externalDevice.m_isLowEnergyDevice   = 0;
+                        strncpy(lstEventMessage.m_externalDevice.m_name, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
+                        strncpy(lstEventMessage.m_externalDevice.m_deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
+
+                        //TODO: Check if XRE wants to bring up a Pop-up or Respond
+                        if (gfpcBBTRMgrEventOut) {
+                            gfpcBBTRMgrEventOut(lstEventMessage);     /* Post a callback */
+                        }
+
+                        {   /* Max 200msec timeout - Polled at 50ms second interval */
+                            unsigned int ui32sleepIdx = 4;
+
+                            do {
+                                usleep(50000);
+                            } while ((gEventRespReceived == 0) && (--ui32sleepIdx));
+
+                        }
+                        if (gEventRespReceived == 0) {
+                            if (!lbSecondAttempt)
+                            {
+                                BTRMGRLOG_INFO("External connection response not received from UI Audio Out device - it is possible UI is not up yet, try again if device is there in 40 seconds\n");
+                                btrMgr_SetAutoconnectOnStartUpTimer();
+                                return BTRMGR_RESULT_SUCCESS;
+                            }
+                            else
+                            {
+                                BTRMGRLOG_WARN("External connection response not received from UI Audio Out device for a second time\n");
+                                api32ConnInAuthResp = 0;
+                            }
+                        } else {
+                            api32ConnInAuthResp = gAcceptConnection;
+                            if (gAcceptConnection) {
+                                BTRMGRLOG_INFO ("Incoming Connection accepted for Audio Out device based on the response from UI\n");
+                            } else {
+                                BTRMGRLOG_INFO ("Incoming Connection rejected for Audio Out device based on the response from UI\n");
+                                if (strstr(stDeviceInfo.pcDeviceName, "AirPods") ||
+                                    (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_APPLE_VENDOR_ID_1) ||
+                                    (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_APPLE_VENDOR_ID_2)) {
+                                        BTRMGRLOG_INFO("Device remains connected even after authorization rejection; initiating a 5‑second timer to disconnect the AirPods.\n");
+                                        btrMgr_ClearDisconnDevHoldOffTimer();
+                                        btrMgr_SetDisconnDevHoldOffTimer(stDeviceInfo.tDeviceId);
+                                }
+                            }
+                            gEventRespReceived = 0;
+                        }
+                    }
+                    else {
+                        BTRMGRLOG_ERROR ("Incoming Connection denied\n");
+                        api32ConnInAuthResp = 0;
+                    }
+                    //expect UI to connect to device to start stream
+                    if(api32ConnInAuthResp)
+                        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
+                    else
+                        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
+                }
 #else //!AUTO_CONNECT_ENABLED
 
-                        if ((lenBtrMgrResult == BTRMGR_RESULT_GENERIC_FAILURE) ||
-                           (!strncmp(lPropValue, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)) &&
-                           (gIsAudOutStartupInProgress != BTRMGR_STARTUP_AUD_COMPLETED))) {
-                            BTRMGRLOG_INFO ("Streaming to Device  = %lld\n", lDeviceHandle);
-                            if (btrMgr_StartAudioStreamingOut(0, lDeviceHandle, aenBTRMgrDevConT, 1, 1, 1) != eBTRMgrSuccess) {
-                                BTRMGRLOG_ERROR ("btrMgr_StartAudioStreamingOut - Failure\n");
-                                lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
-                            }
-                            ghBTRMgrDevHdlLastConnected = lDeviceHandle;
-                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
+                    if ((lenBtrMgrResult == BTRMGR_RESULT_GENERIC_FAILURE) ||
+                        (!strncmp(lPropValue, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)) &&
+                        (gIsAudOutStartupInProgress != BTRMGR_STARTUP_AUD_COMPLETED))) {
+                        BTRMGRLOG_INFO ("Streaming to Device  = %lld\n", lDeviceHandle);
+                        if (btrMgr_StartAudioStreamingOut(0, lDeviceHandle, aenBTRMgrDevConT, 1, 1, 1) != eBTRMgrSuccess) {
+                            BTRMGRLOG_ERROR ("btrMgr_StartAudioStreamingOut - Failure\n");
+                            lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
                         }
-                        else {
-                            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
-                        }
-                    }
-#endif //!AUTO_CONNECT_ENABLED
-                    if (lastConnected)
-                    {
                         ghBTRMgrDevHdlLastConnected = lDeviceHandle;
+                        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
                     }
+                    else {
+                        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_SKIPPED;
+                    }
+                }
+#endif //!AUTO_CONNECT_ENABLED
+                if (lastConnected)
+                {
+                    ghBTRMgrDevHdlLastConnected = lDeviceHandle;
                 }
             }
         }
-
-        if (gIsAudOutStartupInProgress == BTRMGR_STARTUP_AUD_INPROGRESS)
-            gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
     }
 
+    if (gIsAudOutStartupInProgress == BTRMGR_STARTUP_AUD_INPROGRESS)
+        gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_UNKNOWN;
     return lenBtrMgrResult;
 }
 
