@@ -4919,6 +4919,7 @@ BTRMGR_PairDevice (
     int                     j;
     gboolean                bIsPS4 = FALSE;
 
+	BTRMGRLOG_ERROR ("Test log to check the coverity failure\n");
     if (!ghBTRCoreHdl) {
         BTRMGRLOG_ERROR ("BTRCore is not Inited\n");
         return BTRMGR_RESULT_INIT_FAILED;
