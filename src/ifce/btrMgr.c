@@ -2905,7 +2905,7 @@ btrMgr_ConnectToDevice (
             if (lenBtrCoreRet != enBTRCoreSuccess) {
                 //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
                 char buffer[256];
-                snprintf(buffer, sizeof(buffer), "Failed to Connect to this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                     lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                     stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
                 telemetry_event_s("BTConnFail_split", buffer);
@@ -2942,7 +2942,7 @@ btrMgr_ConnectToDevice (
             else {
                 //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
                 char buffer[256];
-                snprintf(buffer, sizeof(buffer), "Succes Connect to this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                     lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                     stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
                 telemetry_event_s("BTConnSucc_split", buffer);
@@ -5092,7 +5092,7 @@ BTRMGR_PairDevice (
                 if (lenBtrMgrRet == eBTRMgrSuccess) {
                     //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
                     const char* lpcDeviceName = stDeviceInfo.pcDeviceName ? stDeviceInfo.pcDeviceName : "Unknown";
-                    snprintf(telemetryBuffer, sizeof(telemetryBuffer), "Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                    snprintf(telemetryBuffer, sizeof(telemetryBuffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                         lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                         stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
                     telemetry_event_s("BTPairFail_split", telemetryBuffer);
@@ -5164,7 +5164,7 @@ BTRMGR_PairDevice (
             BTRMGRLOG_DEBUG ("Paired device info: handle, Name -  %llu,%s\n",ahBTRMgrDevHdl,gListOfPairedDevices.m_deviceProperty[j].m_name);
             //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
             const char* lpcDeviceName = stDeviceInfo.pcDeviceName ? stDeviceInfo.pcDeviceName : "Unknown";
-            snprintf(telemetryBuffer, sizeof(telemetryBuffer), "Paired Successfully name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+            snprintf(telemetryBuffer, sizeof(telemetryBuffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                 lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                 stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
             telemetry_event_s("BTPairSucc_split", telemetryBuffer);
@@ -5230,7 +5230,7 @@ BTRMGR_PairDevice (
                 //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
                 const char* lpcDeviceName = stDeviceInfo.pcDeviceName ? stDeviceInfo.pcDeviceName : "Unknown";
                 const char* lpcDeviceAddress = stDeviceInfo.pcDeviceAddress ? stDeviceInfo.pcDeviceAddress : "Unknown";
-                snprintf(telemetryBuffer, sizeof(telemetryBuffer), "Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                snprintf(telemetryBuffer, sizeof(telemetryBuffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                     lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                     stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
                 telemetry_event_s("BTPairFail_split", telemetryBuffer);
@@ -5340,7 +5340,7 @@ BTRMGR_UnpairDevice (
     if (enBTRCoreSuccess != BTRCore_UnPairDevice(ghBTRCoreHdl, ahBTRMgrDevHdl)) {
         //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
         char buffer[256];
-        snprintf(buffer, sizeof(buffer), "Failed to unpair name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+        snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
             stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
             stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
         telemetry_event_s("BTUnpairFail_split", buffer);
@@ -5358,7 +5358,7 @@ BTRMGR_UnpairDevice (
             if (ahBTRMgrDevHdl == gListOfPairedDevices.m_deviceProperty[j].m_deviceHandle) {
                 //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
                 char buffer[256];
-                snprintf(buffer, sizeof(buffer), "Unpaired Successfully name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+                snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                     stDeviceInfo.pcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                     stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
                 telemetry_event_s("BTUnpairSucc_split", buffer);
@@ -5673,7 +5673,7 @@ BTRMGR_DisconnectFromDevice (
         if (lenBtrCoreRet != enBTRCoreSuccess) {
             //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Failed to Disconnect from this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+            snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                 lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                 stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
             telemetry_event_s("BTDiscFail_split", buffer);
@@ -5687,7 +5687,7 @@ BTRMGR_DisconnectFromDevice (
         else {
             //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
             char buffer[256];
-            snprintf(buffer, sizeof(buffer), "Success Disconnect from this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
+            snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
                 lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
                 stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
             telemetry_event_s("BTDiscSucc_split", buffer);
