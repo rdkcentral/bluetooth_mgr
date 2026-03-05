@@ -675,131 +675,6 @@ BTRMGR_SetBroadcastState(
 }
 #endif
 
-/*
- * TEST SIMULATION FUNCTION FOR TELEMETRY MARKERS
- * This function simulates all 22 telemetry markers for testing
- * Set BTRMGR_TELEMETRY_TEST=1 environment variable to enable testing
- */
-#if 1
- STATIC void
-btrMgr_TelemetryTestSimulation (
-    void
-) {
-    BTRMGRLOG_INFO("============================================\n");
-    BTRMGRLOG_INFO("TELEMETRY TEST SIMULATION - START\n");
-    BTRMGRLOG_INFO("============================================\n");
-
-    // Simulate device info for split markers
-    char buffer[256];
-
-    /* Test 1-2: BTConnFail_split, BTConnSucc_split */
-    BTRMGRLOG_INFO("[TEST 1] BTConnFail_split\n");
-    snprintf(buffer, sizeof(buffer), "Failed to Connect to this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestDevice", 2360344, 0, 0x046d, 0xb33f, 0x0001);
-    telemetry_event_s("BTConnFail_split", buffer);
-
-    BTRMGRLOG_INFO("[TEST 2] BTConnSucc_split\n");
-    snprintf(buffer, sizeof(buffer), "Succes Connect to this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestDevice", 2360344, 0, 0x046d, 0xb33f, 0x0001);
-    telemetry_event_s("BTConnSucc_split", buffer);
-
-    /* Test 3: BT_ERROR_NotConnect */
-    BTRMGRLOG_INFO("[TEST 3] BT_ERROR_NotConnect\n");
-    telemetry_event_d("BT_ERROR_NotConnect", 1);
-
-    /* Test 4: BT_ERR_AdaptorNotFound */
-    BTRMGRLOG_INFO("[TEST 4] BT_ERR_AdaptorNotFound\n");
-    telemetry_event_d("BT_ERR_AdaptorNotFound", 1);
-
-    /* Test 5: BT_ERR_AgentActFailed */
-    BTRMGRLOG_INFO("[TEST 5] BT_ERR_AgentActFailed\n");
-    telemetry_event_d("BT_ERR_AgentActFailed", 1);
-
-    /* Test 6: BT_ERR_DiscStartFail */
-    BTRMGRLOG_INFO("[TEST 6] BT_ERR_DiscStartFail\n");
-    telemetry_event_d("BT_ERR_DiscStartFail", 1);
-
-    /* Test 7: BT_ERR_GetDiscListFail */
-    BTRMGRLOG_INFO("[TEST 7] BT_ERR_GetDiscListFail\n");
-    telemetry_event_d("BT_ERR_GetDiscListFail", 1);
-
-    /* Test 8-9-10: BTPairFail_split (3 locations), BTPairSucc_split */
-    BTRMGRLOG_INFO("[TEST 8] BTPairFail_split\n");
-    snprintf(buffer, sizeof(buffer), "Failed to pair a device name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestKeyboard", 1408, 961, 0x046d, 0xb33f, 0x0001);
-    telemetry_event_s("BTPairFail_split", buffer);
-
-    BTRMGRLOG_INFO("[TEST 9] BTPairSucc_split\n");
-    snprintf(buffer, sizeof(buffer), "Paired Successfully name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestKeyboard", 1408, 961, 0x046d, 0xb33f, 0x0001);
-    telemetry_event_s("BTPairSucc_split", buffer);
-
-    /* Test 10-11: BTUnpairFail_split, BTUnpairSucc_split */
-    BTRMGRLOG_INFO("[TEST 10] BTUnpairFail_split\n");
-    snprintf(buffer, sizeof(buffer), "Failed to unpair name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestMouse", 1408, 962, 0x046d, 0xc52b, 0x0002);
-    telemetry_event_s("BTUnpairFail_split", buffer);
-
-    BTRMGRLOG_INFO("[TEST 11] BTUnpairSucc_split\n");
-    snprintf(buffer, sizeof(buffer), "Unpaired Successfully name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestMouse", 1408, 962, 0x046d, 0xc52b, 0x0002);
-    telemetry_event_s("BTUnpairSucc_split", buffer);
-
-    /* Test 12-13: BTDiscFail_split, BTDiscSucc_split */
-    BTRMGRLOG_INFO("[TEST 12] BTDiscFail_split\n");
-    snprintf(buffer, sizeof(buffer), "Failed to Disconnect from this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestHeadset", 2360324, 1028, 0x054c, 0x0ce6, 0x0001);
-    telemetry_event_s("BTDiscFail_split", buffer);
-
-    BTRMGRLOG_INFO("[TEST 13] BTDiscSucc_split\n");
-    snprintf(buffer, sizeof(buffer), "Success Disconnect from this device - Confirmed name,class,apperance,modalias: %s,%u,%u,v%04Xp%04Xd%04X",
-        "TestHeadset", 2360324, 1028, 0x054c, 0x0ce6, 0x0001);
-    telemetry_event_s("BTDiscSucc_split", buffer);
-
-    /* Test 14: BT_ERR_GetBTAdapterFail (from btcore) */
-    BTRMGRLOG_INFO("[TEST 14] BT_ERR_GetBTAdapterFail\n");
-    telemetry_event_d("BT_ERR_GetBTAdapterFail", 1);
-
-    /* Test 15: BT_ERR_FailToPair (from btcore) */
-    BTRMGRLOG_INFO("[TEST 15] BT_ERR_FailToPair\n");
-    telemetry_event_d("BT_ERR_FailToPair", 1);
-
-    /* Test 16: BT_ERR_BatteryThreadFail (from btcore) */
-    BTRMGRLOG_INFO("[TEST 16] BT_ERR_BatteryThreadFail\n");
-    telemetry_event_d("BT_ERR_BatteryThreadFail", 1);
-
-    /* Test 17: BT_INFO_NotSupp_split (from btcore) */
-    BTRMGRLOG_INFO("[TEST 17] BT_INFO_NotSupp_split\n");
-    snprintf(buffer, sizeof(buffer), "Unsupport BT device detected v%04Xp%04Xd%04X",
-        0x05ac, 0x0255, 0x011b);
-    telemetry_event_s("BT_INFO_NotSupp_split", buffer);
-
-    /* Test 18-19: BTpair_split, BTconn_split (from btcore gdbus) */
-    BTRMGRLOG_INFO("[TEST 18] BTpair_split\n");
-    snprintf(buffer, sizeof(buffer), "bPaired = %d", 1);
-    telemetry_event_s("BTpair_split", buffer);
-
-    BTRMGRLOG_INFO("[TEST 19] BTconn_split\n");
-    snprintf(buffer, sizeof(buffer), "bConnected = %d", 1);
-    telemetry_event_s("BTconn_split", buffer);
-
-    /* Test 20: BT_ERR_DiscStopFail (from btcore gdbus) */
-    BTRMGRLOG_INFO("[TEST 20] BT_ERR_DiscStopFail\n");
-    telemetry_event_d("BT_ERR_DiscStopFail", 1);
-
-    /* Test 21-22: BT_INFO_GP_False, BT_INFO_GP_E (GamePad RFC) */
-    BTRMGRLOG_INFO("[TEST 21] BT_INFO_GP_False\n");
-    telemetry_event_d("BT_INFO_GP_False", 1);
-
-    BTRMGRLOG_INFO("[TEST 22] BT_INFO_GP_E\n");
-    telemetry_event_d("BT_INFO_GP_E", 1);
-
-    BTRMGRLOG_INFO("============================================\n");
-    BTRMGRLOG_INFO("TELEMETRY TEST SIMULATION - COMPLETE\n");
-    BTRMGRLOG_INFO("Total: 22 markers tested\n");
-    BTRMGRLOG_INFO("============================================\n");
-}
-#endif
 #ifndef LE_MODE
 STATIC void
 btrMgr_CheckAudioInServiceAvailability (
@@ -4040,7 +3915,6 @@ BTRMGR_Init (
 
     char btmgr_name[] = "btmgr";
     telemetry_init(btmgr_name);
-    btrMgr_TelemetryTestSimulation();
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
@@ -5298,9 +5172,6 @@ BTRMGR_PairDevice (
             lpcDeviceName, stDeviceInfo.ui32DevClassBtSpec, stDeviceInfo.ui16DevAppearanceBleSpec,
             stDeviceInfo.ui32ModaliasVendorId, stDeviceInfo.ui32ModaliasProductId, stDeviceInfo.ui32ModaliasDeviceId);
             BTRMGRLOG_INFO ("Pairing success device MAC %s\n", stDeviceInfo.pcDeviceAddress);
-
-            /* Run telemetry test simulation after successful pairing */
-            // btrMgr_TelemetryTestSimulation();
 
             ui8isDevicePaired = 1;
 
