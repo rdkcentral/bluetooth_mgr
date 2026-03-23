@@ -9501,7 +9501,11 @@ btrMgr_SDStatusCb (
                     enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
                     stBTRCoreBTDevice       stDeviceInfo = {0};
 
-                    btrMgr_GetDeviceDetails(lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle,&stDeviceInfo);
+                    if (btrMgr_GetDeviceDetails(lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, &stDeviceInfo) != 0) {
+                        BTRMGRLOG_ERROR ("btrMgr_GetDeviceDetails failed for device handle %llu\n",
+                                         lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                        continue;
+                    }
                     if ((stDeviceInfo.enDeviceType == BTRMGR_DEVICE_TYPE_HID ||
                         stDeviceInfo.enDeviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
                         (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
