@@ -9506,8 +9506,11 @@ btrMgr_SDStatusCb (
                                          lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle);
                         continue;
                     }
-                    if ((stDeviceInfo.enDeviceType == BTRMGR_DEVICE_TYPE_HID ||
-                        stDeviceInfo.enDeviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
+                    /* Map BTRCore device type to BTRMGR device type before comparison */
+                    BTRMGR_DeviceType_t enMgrDevType = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
+
+                    if ((enMgrDevType == BTRMGR_DEVICE_TYPE_HID ||
+                         enMgrDevType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
                         (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                         (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_XBOX_ELITE_VENDOR_ID) &&
                         (stDeviceInfo.ui32ModaliasProductId == BTRMGR_XBOX_ELITE_PRODUCT_ID) &&
