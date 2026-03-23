@@ -6130,8 +6130,10 @@ BTRMGR_ConnectGamepads_StartUp (
             continue;
         }
 
-        if ((stDeviceInfo.enDeviceType == BTRMGR_DEVICE_TYPE_HID ||
-            stDeviceInfo.enDeviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
+        BTRMGR_DeviceType mappedDevType = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
+
+        if ((mappedDevType == BTRMGR_DEVICE_TYPE_HID ||
+            mappedDevType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
             (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
             (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_XBOX_ELITE_VENDOR_ID) &&
             (stDeviceInfo.ui32ModaliasProductId == BTRMGR_XBOX_ELITE_PRODUCT_ID) &&
