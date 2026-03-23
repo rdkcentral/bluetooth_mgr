@@ -6154,7 +6154,7 @@ BTRMGR_ConnectGamepads_StartUp (
             strncpy(stRecreatedEvent.deviceName, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
             strncpy(stRecreatedEvent.deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
             stRecreatedEvent.deviceId = stDeviceInfo.tDeviceId;
-            stRecreatedEvent.eDeviceClass = stDeviceInfo.ui32DevClassBtSpec;
+            stRecreatedEvent.eDeviceClass = stDeviceInfo.enDeviceClass;
             stRecreatedEvent.eDeviceType = stDeviceInfo.enDeviceType;
             stRecreatedEvent.isPaired = 1;
             stRecreatedEvent.ui32VendorId = stDeviceInfo.ui32ModaliasVendorId;
