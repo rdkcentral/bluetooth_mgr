@@ -6130,10 +6130,8 @@ BTRMGR_ConnectGamepads_StartUp (
             continue;
         }
 
-        BTRMGR_DeviceType mappedDevType = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
-
-        if ((mappedDevType == BTRMGR_DEVICE_TYPE_HID ||
-            mappedDevType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
+        if ((gListOfPairedDevices.m_deviceProperty[i].m_deviceType == BTRMGR_DEVICE_TYPE_HID ||
+            gListOfPairedDevices.m_deviceProperty[i].m_deviceType ==BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
             (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
             (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_XBOX_ELITE_VENDOR_ID) &&
             (stDeviceInfo.ui32ModaliasProductId == BTRMGR_XBOX_ELITE_PRODUCT_ID) &&
@@ -6154,7 +6152,7 @@ BTRMGR_ConnectGamepads_StartUp (
             strncpy(stRecreatedEvent.deviceName, stDeviceInfo.pcDeviceName, BTRMGR_NAME_LEN_MAX - 1);
             strncpy(stRecreatedEvent.deviceAddress, stDeviceInfo.pcDeviceAddress, BTRMGR_NAME_LEN_MAX - 1);
             stRecreatedEvent.deviceId = stDeviceInfo.tDeviceId;
-            stRecreatedEvent.eDeviceClass = stDeviceInfo.enDeviceClass;
+            stRecreatedEvent.eDeviceClass = stDeviceInfo.enDeviceType;
             stRecreatedEvent.eDeviceType = stDeviceInfo.enDeviceType;
             stRecreatedEvent.isPaired = 1;
             stRecreatedEvent.ui32VendorId = stDeviceInfo.ui32ModaliasVendorId;
@@ -9506,11 +9504,9 @@ btrMgr_SDStatusCb (
                                          lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle);
                         continue;
                     }
-                    /* Map BTRCore device type to BTRMGR device type before comparison */
-                    BTRMGR_DeviceType_t enMgrDevType = btrMgr_MapDeviceTypeFromCore(stDeviceInfo.enDeviceType);
 
-                    if ((enMgrDevType == BTRMGR_DEVICE_TYPE_HID ||
-                         enMgrDevType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
+                    if ((lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID ||
+                         lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
                         (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
                         (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_XBOX_ELITE_VENDOR_ID) &&
                         (stDeviceInfo.ui32ModaliasProductId == BTRMGR_XBOX_ELITE_PRODUCT_ID) &&
