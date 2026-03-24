@@ -29,6 +29,7 @@
 #include "mock_btrMgr_LEOnboarding.h"
 #include "mock_btrMgr_streamOut.h"
 #include "mock_btrMgr_streamIn.h"
+#include "mock_bt-telemetry.h"
 
 
 
@@ -109,6 +110,10 @@ extern eBTRMgrRet btrMgr_SOStatusCb(stBTRMgrMediaStatus *apstBtrMgrSoStatus, voi
 void setUp(void)
 {
     // Initialize the gstBTRMgrStreamingInfo for testing purposes
+    telemetry_init_IgnoreAndReturn(0);
+    telemetry_event_s_IgnoreAndReturn(0);
+    telemetry_event_d_IgnoreAndReturn(0);
+
     gstBTRMgrStreamingInfo.hBTRMgrAcHdl = 0;
     gstBTRMgrStreamingInfo.hBTRMgrSoHdl = 1;
     gstBTRMgrStreamingInfo.hBTRMgrSiHdl = 0;
