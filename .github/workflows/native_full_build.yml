@@ -1,0 +1,83 @@
+name: BT-Core Coverity Incremental Analysis Scan
+
+on:
+  pull_request:
+    branches: [ develop ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  native-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------
+      # Checkout
+      # ----------------------------------------
+      - name: Checkout Bluetooth source
+        uses: actions/checkout@v4
+
+      # ----------------------------------------
+      # System dependencies
+      # ----------------------------------------
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake libtool pkg-config \
+            gcc g++ make \
+            libglib2.0-dev libdbus-1-dev libbluetooth-dev
+
+      # ----------------------------------------
+      # Telemetry stub (NO external repos)
+      # ----------------------------------------
+      - name: Build telemetry stub library
+        run: |
+          git clone https://github.com/rdkcentral/telemetry.git
+
+          mkdir -p ${GITHUB_WORKSPACE}/external/include
+
+          cp telemetry/include/telemetry_busmessage_sender.h \
+             ${GITHUB_WORKSPACE}/external/include/
+
+          cp telemetry/include/telemetry2_0.h \
+             ${GITHUB_WORKSPACE}/external/include/
+
+          mkdir -p ${GITHUB_WORKSPACE}/external/lib
+
+          cat << 'EOF' > telemetry_stub.c
+          int t2_init(void) { return 0; }
+          int t2_event_s(const char* n, const char* v) { return 0; }
+          int t2_event_f(const char* n, float v) { return 0; }
+          int t2_event_d(const char* n, double v) { return 0; }
+          EOF
+
+          gcc -shared -fPIC telemetry_stub.c \
+            -o ${GITHUB_WORKSPACE}/external/lib/libtelemetry_msgsender.so
+
+      # ----------------------------------------
+      # Autotools bootstrap
+      # ----------------------------------------
+      - name: Bootstrap autotools
+        run: |
+          libtoolize --force
+          aclocal
+          autoheader
+          automake --force-missing --add-missing
+          autoconf
+
+      # ----------------------------------------
+      # Configure Bluetooth
+      # ----------------------------------------
+      - name: Configure Bluetooth
+        run: |
+          CFLAGS="-Wno-error" \
+          CXXFLAGS="-Wno-error" \
+          ./configure
+
+      # ----------------------------------------
+      # Build production libraries (explicit order)
+      # ----------------------------------------
+      - name: Build Bluetooth libraries
+        run: |
+          make -j$(nproc)
