@@ -1,0 +1,90 @@
+name: BT-Mgr Coverity Incremental Analysis Scan
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  native-build:
+    runs-on: ubuntu-22.04
+
+    env:
+      PREFIX_PATH: ${{ github.workspace }}/output
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            libunwind-dev \
+            libglib2.0-dev \
+            libdbus-1-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libbluetooth-dev \
+            libcjson-dev
+
+      - name: Prepare autotools
+        run: |
+          libtoolize --force
+          aclocal
+          aclocal -I m4
+          automake --force-missing --add-missing
+          autoconf
+
+      - name: Checkout btrCore
+        run: |
+          git clone https://github.com/rdkcentral/bluetooth.git
+
+      - name: Build and install libbtrCore from bluetooth.git
+        run: |
+          cd bluetooth
+
+          libtoolize --force
+          aclocal -I m4
+          autoheader
+          automake --force-missing --add-missing
+          autoconf
+
+          ./configure --prefix=$PREFIX_PATH
+          make -j$(nproc)
+          make install
+
+      - name: Configure
+        run: |
+          mkdir -p $PREFIX_PATH
+          CPPFLAGS="-I$PREFIX_PATH/include -I$PREFIX_PATH/include/cjson" \
+          LIBCJSON_CFLAGS="-I/usr/include/cjson" \
+          LDFLAGS="-L$PREFIX_PATH/lib" \
+          ./configure \
+            --enable-gstreamer1=yes \
+            --enable-pi-build=yes \
+            --prefix=$PREFIX_PATH
+
+      - name: Build
+        run: |
+          make -j$(nproc)
+
+      - name: Install
+        run: |
+          make install
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bluetooth_mgr-native-build
+          path: output
