@@ -43,7 +43,7 @@
 #ifdef UNIT_TEST
 #define BTRMGR_PERSISTENT_DATA_PATH JSON_PATH_UNIT_TEST
 #else
-#define BTRMGR_PERSISTENT_DATA_PATH "/opt/lib/bluetooth/btmgrPersist.json"
+#define BTRMGR_PERSISTENT_DATA_PATH "/opt/secure/lib/bluetooth/btmgrPersist.json"
 #endif
 #define BTRMGR_A2DP_SRC_PROFILE_ID  "0x110a"
 #define BTRMGR_A2DP_SINK_PROFILE_ID "0x110b"
