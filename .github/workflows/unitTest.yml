@@ -65,6 +65,7 @@ jobs:
 
     - name: Run Unit Tests
       run: |
+        export RUBYOPT="-rpathname"
         ceedling gcov:all utils:gcov
         coverage=$(gcovr -r . -s 2>/dev/null | grep 'executed' | awk '{print $3}')
     - name: Generate HTML Report
