@@ -4771,9 +4771,9 @@ BTRMGR_StopDeviceDiscovery_Internal (
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
     else {
-        BTRMGRLOG_INFO ("Discovery Stopped Successfully\n");
+        BTRMGRLOG_INFO ("Stop discovery requested successfully\n");
 
-        {   /* Max 6 sec timeout - Polled at 50ms second interval */
+        {   /* Max 6 sec timeout - Polled at 50ms interval */
             unsigned int ui32sleepIdx = 120;
 
             while ((gIsAdapterDiscovering) && (ui32sleepIdx--)) {
