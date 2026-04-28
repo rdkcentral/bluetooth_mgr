@@ -6100,6 +6100,7 @@ BTRMGR_ConnectGamepads_StartUp (
     int                       auth;
     stBTRCoreDevStatusCBInfo  stRecreatedEvent = { 0 };
     BTRMGR_EventMessage_t     lstEventMessage;
+    enBTRCoreRet              lenBtrCoreRet   = enBTRCoreSuccess;
 
     char lcPowerState[BTRMGR_LE_STR_LEN_MAX] = {'\0'};
     BTRMGR_SysDiagChar_t lpcPowerString = BTRMGR_SYS_DIAG_POWERSTATE;
@@ -6124,7 +6125,25 @@ BTRMGR_ConnectGamepads_StartUp (
     for (int i = 0; i < gListOfPairedDevices.m_numOfDevices; i++)
     {
         stBTRCoreBTDevice stDeviceInfo = { 0 };
-        btrMgr_GetDeviceDetails(gListOfPairedDevices.m_deviceProperty[i].m_deviceHandle, &stDeviceInfo);
+        if (eBTRMgrSuccess != btrMgr_GetDeviceDetails(gListOfPairedDevices.m_deviceProperty[i].m_deviceHandle, &stDeviceInfo)) {
+            BTRMGRLOG_ERROR("Not able to get the device info ...\n");
+            continue;
+        }
+
+        if ((gListOfPairedDevices.m_deviceProperty[i].m_deviceType == BTRMGR_DEVICE_TYPE_HID ||
+            gListOfPairedDevices.m_deviceProperty[i].m_deviceType ==BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
+            (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
+            (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_XBOX_ELITE_VENDOR_ID) &&
+            (stDeviceInfo.ui32ModaliasProductId == BTRMGR_XBOX_ELITE_PRODUCT_ID) &&
+            (stDeviceInfo.ui32ModaliasDeviceId == BTRMGR_XBOX_ELITE_DEFAULT_FIRMWARE2)) {
+            lenBtrCoreRet = btrCore_UpdateDeviceBlockState(ghBTRCoreHdl,stDeviceInfo.tDeviceId,stDeviceInfo.enDeviceType,0);
+            if (lenBtrCoreRet != enBTRCoreSuccess) {
+                BTRMGRLOG_INFO("Failed to update the block state of the device ...\n");
+            } else {
+                BTRMGRLOG_INFO("Updated the block state of the device successfully ...\n");
+            }
+        }
+
         if (stDeviceInfo.bDeviceConnected
         && (gListOfPairedDevices.m_deviceProperty[i].m_deviceType == BTRMGR_DEVICE_TYPE_HID
         || gListOfPairedDevices.m_deviceProperty[i].m_deviceType ==BTRMGR_DEVICE_TYPE_HID_GAMEPAD)
@@ -9478,6 +9497,28 @@ btrMgr_SDStatusCb (
                     unsigned int            ui32confirmIdx  = 2;
                     enBTRCoreDeviceType     lenBtrCoreDevTy = enBTRCoreUnknown;
                     enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
+                    stBTRCoreBTDevice       stDeviceInfo = {0};
+
+                    if (btrMgr_GetDeviceDetails(lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, &stDeviceInfo) != 0) {
+                        BTRMGRLOG_ERROR ("btrMgr_GetDeviceDetails failed for device handle %llu\n",
+                                         lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                        continue;
+                    }
+
+                    if ((lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID ||
+                         lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceType == BTRMGR_DEVICE_TYPE_HID_GAMEPAD) &&
+                        (stDeviceInfo.ui16DevAppearanceBleSpec != BTRMGR_HID_GAMEPAD_LE_APPEARANCE) &&
+                        (stDeviceInfo.ui32ModaliasVendorId == BTRMGR_XBOX_ELITE_VENDOR_ID) &&
+                        (stDeviceInfo.ui32ModaliasProductId == BTRMGR_XBOX_ELITE_PRODUCT_ID) &&
+                        (stDeviceInfo.ui32ModaliasDeviceId == BTRMGR_XBOX_ELITE_DEFAULT_FIRMWARE2)) {
+                        lenBtrCoreRet = btrCore_UpdateDeviceBlockState (ghBTRCoreHdl, stDeviceInfo.tDeviceId, stDeviceInfo.enDeviceType,1);
+                        if (lenBtrCoreRet != enBTRCoreSuccess) {
+                            BTRMGRLOG_INFO("Failed to update the block state of the device ...\n");
+                        } else {
+                            BTRMGRLOG_INFO("Updated the block state of the device successfully ...\n");
+                        }
+                    }
+
                     isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_serviceInfo, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
                     BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices->m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
 
