@@ -129,6 +129,9 @@ main (
 
         time(&curr);
 
+        printf("Hello! Welcome to Bluetooth Manager\n");
+        fflush(stdout);
+
 #ifdef IARM_RPC_ENABLED
         printf ("I-ARM BTMgr Bus: BTRMgr_BeginIARMMode %s\n", ctime(&curr));
         BTRMgr_BeginIARMMode();
