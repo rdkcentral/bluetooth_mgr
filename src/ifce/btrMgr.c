@@ -194,6 +194,7 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlConnInProgress = 0;
 STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 #endif
 gboolean                                isDeinitInProgress = FALSE;
+gboolean                                SkipDiscoveryOps   = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrBgDiscoveryHdl;
@@ -3916,6 +3917,7 @@ BTRMGR_Init (
     char btmgr_name[] = "btmgr";
     telemetry_init(btmgr_name);
     isDeinitInProgress = FALSE;
+    SkipDiscoveryOps = FALSE;
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
     MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
@@ -4110,6 +4112,7 @@ BTRMGR_DeInit (
         lenBtrMgrRet = btrMgr_StopDeviceDiscovery (0, ldiscoveryHdl);
         BTRMGRLOG_DEBUG ("Exit Discovery Status = %d\n", lenBtrMgrRet);
     }
+    SkipDiscoveryOps = TRUE;
 
     if ((lenBtrMgrResult = BTRMGR_GetConnectedDevices(0, &lstConnectedDevices)) == BTRMGR_RESULT_SUCCESS) {
         BTRMGRLOG_DEBUG ("Connected Devices = %d\n", lstConnectedDevices.m_numOfDevices);
@@ -4638,6 +4641,11 @@ BTRMGR_StartDeviceDiscovery_Internal (
         return BTRMGR_RESULT_INVALID_INPUT;
     }
 
+    if (SkipDiscoveryOps) {
+        BTRMGRLOG_ERROR ("Process shutdown in progress, skipping start discovery\n");
+        return BTRMGR_RESULT_GENERIC_FAILURE;
+    }
+
     if (!(pAdapterPath = btrMgr_GetAdapterPath(aui8AdapterIdx))) {
         BTRMGRLOG_ERROR ("Failed to get adapter path\n");
         return BTRMGR_RESULT_GENERIC_FAILURE;
@@ -4690,7 +4698,8 @@ BTRMGR_StartDeviceDiscovery_Internal (
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
     else {
-        {   /* Max 5 sec timeout - Polled at 5ms second interval */
+        /* Max 5 sec timeout - Polled at 5ms second interval */
+        if (!isDeinitInProgress) {
             unsigned int ui32sleepIdx = 1000;
 
             do {
@@ -4738,6 +4747,11 @@ BTRMGR_StopDeviceDiscovery_Internal (
         return BTRMGR_RESULT_GENERIC_FAILURE;
     }
 
+    if (SkipDiscoveryOps) {
+        BTRMGRLOG_ERROR ("Process shutdown in progress, skipping stop discovery\n");
+        return BTRMGR_RESULT_GENERIC_FAILURE;
+    }
+
     if (!(ahdiscoveryHdl = btrMgr_GetDiscoveryInProgress())) {
         BTRMGRLOG_WARN("Scanning is not running now\n");
     }
@@ -4773,7 +4787,8 @@ BTRMGR_StopDeviceDiscovery_Internal (
     else {
         BTRMGRLOG_INFO ("Stop discovery requested successfully\n");
 
-        {   /* Max 6 sec timeout - Polled at 50ms interval */
+        /* Max 6 sec timeout - Polled at 50ms interval */
+        if (!isDeinitInProgress) {
             unsigned int ui32sleepIdx = 120;
 
             while ((gIsAdapterDiscovering) && (ui32sleepIdx--)) {
