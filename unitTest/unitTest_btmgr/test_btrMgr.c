@@ -67,6 +67,7 @@ extern void *gpvMainLoopThread;
 extern tBTRCoreHandle ghBTRCoreHdl;
 extern tBTRMgrPIHdl ghBTRMgrPiHdl;
 extern bool isDeinitInProgress;
+extern bool SkipDiscoveryOps;
 extern stBTRCoreListAdapters gListOfAdapters;
 extern BTRMGR_PairedDevicesList_t gListOfPairedDevices;
 extern BTRMGR_DiscoveredDevicesList_t gListOfDiscoveredDevices;
@@ -5675,7 +5676,7 @@ void test_BTRMGR_DeInit_NoConnectedDevices(void)
 {
     // Mock no connected devices
     // BTRMGR_GetConnectedDevices_ExpectAndReturn(0, NULL, BTRMGR_RESULT_SUCCESS);
-
+    SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1;
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     BTRCore_GetListOfScannedDevices_StubWithCallback(_mock_return_ScannedList);
@@ -5690,6 +5691,7 @@ void test_BTRMGR_DeInit_MainLoopAndThreadCleanup(void)
 {
     // Mock main loop and thread cleanup
 
+    SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1;
     unsigned char aui8AdapterIdx;
     aui8AdapterIdx = 0;
@@ -5703,7 +5705,6 @@ void test_BTRMGR_DeInit_MainLoopAndThreadCleanup(void)
 
     BTRMGR_Result_t result = BTRMGR_DeInit();
     TEST_ASSERT_EQUAL(BTRMGR_RESULT_SUCCESS, result);
-
     
 }
 
@@ -5774,6 +5775,7 @@ void test_BTRMGR_DeInit_BTRCoreDeinitFailure(void)
 void test_BTRMGR_DeInit_Success(void)
 {
     // Mock successful deinitialization
+    SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)malloc(sizeof(stBTRCoreHdl)); // Allocate memory for BTRCore handle
     BTRMGR_ConnectedDevicesList_t lstConnectedDevices = {0};
     lstConnectedDevices.m_numOfDevices = 0; // No connected devices
@@ -5874,6 +5876,7 @@ void test_BTRMGR_DeInit_FailedCoreDeinit(void)
 }
 void test_BTRMGR_StopDeviceDiscovery_Success(void)
 {
+    SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1; // Simulate initialized BTRCore handle
     BTRMGR_DeviceOperationType_t devOpType = BTRMGR_DEVICE_OP_TYPE_LE;
 
@@ -6012,6 +6015,7 @@ void test_BTRMGR_StartAudioStreamingIn_InvalidInput(void)
 }
 void test_BTRMGR_StartAudioStreamingIn_Success(void)
 {
+    SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1; // Simulate initialized BTRCore handle
 
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
@@ -6127,6 +6131,7 @@ void test_BTRMGR_StartAudioStreamingIn_StartFailed(void) {
 }
 
 void test_BTRMGR_StartAudioStreamingIn_Failure_StopPreviousStreamingIn(void) {
+    SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1; // Simulate initialized BTRCore handle
     ghBTRMgrDevHdlCurStreaming = 12345; // Simulate a device currently streaming in
     //BTRMgrDeviceHandle ahBTRMgrDevHdl;
