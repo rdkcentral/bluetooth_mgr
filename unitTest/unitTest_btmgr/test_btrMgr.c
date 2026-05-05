@@ -5678,6 +5678,7 @@ void test_BTRMGR_DeInit_NoConnectedDevices(void)
     // BTRMGR_GetConnectedDevices_ExpectAndReturn(0, NULL, BTRMGR_RESULT_SUCCESS);
     SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1;
+    BTRCore_StopDiscovery_ExpectAndReturn(ghBTRCoreHdl, 0, enBTRCoreSuccess);
     BTRCore_GetListOfPairedDevices_StubWithCallback(_mock_BTRCore_GetListOfPairedDevices_Success);
     BTRCore_GetListOfScannedDevices_StubWithCallback(_mock_return_ScannedList);
     BTRMgr_SD_DeInit_IgnoreAndReturn(eBTRMgrSuccess);
@@ -5693,6 +5694,7 @@ void test_BTRMGR_DeInit_MainLoopAndThreadCleanup(void)
 
     SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)1;
+    BTRCore_StopDiscovery_ExpectAndReturn(ghBTRCoreHdl, 0, enBTRCoreSuccess);
     unsigned char aui8AdapterIdx;
     aui8AdapterIdx = 0;
     BTRMGR_ConnectedDevicesList_t *pConnectedDevices;
@@ -5713,6 +5715,7 @@ void test_BTRMGR_DeInit_SDModuleDeinitFailure(void)
     // Mock SD module deinitialization failure
 
     ghBTRCoreHdl = (tBTRCoreHandle)1;
+    BTRCore_StopDiscovery_ExpectAndReturn(ghBTRCoreHdl, 0, enBTRCoreSuccess);
     unsigned char aui8AdapterIdx;
     aui8AdapterIdx = 0;
     BTRMGR_ConnectedDevicesList_t *pConnectedDevices;
@@ -5734,6 +5737,7 @@ void test_BTRMGR_DeInit_PIModuleDeinitFailure(void)
 {
     //     // Mock PI module deinitialization failure
     ghBTRCoreHdl = (tBTRCoreHandle)1;
+    BTRCore_StopDiscovery_ExpectAndReturn(ghBTRCoreHdl, 0, enBTRCoreSuccess);
     unsigned char aui8AdapterIdx;
     aui8AdapterIdx = 0;
     BTRMGR_ConnectedDevicesList_t *pConnectedDevices;
@@ -5756,6 +5760,7 @@ void test_BTRMGR_DeInit_BTRCoreDeinitFailure(void)
 {
     // Mock BTRCore deinitialization failure
     ghBTRCoreHdl = (tBTRCoreHandle)1;
+    BTRCore_StopDiscovery_ExpectAndReturn(ghBTRCoreHdl, 0, enBTRCoreSuccess);
     unsigned char aui8AdapterIdx;
     aui8AdapterIdx = 0;
     BTRMGR_ConnectedDevicesList_t *pConnectedDevices;
@@ -5777,6 +5782,7 @@ void test_BTRMGR_DeInit_Success(void)
     // Mock successful deinitialization
     SkipDiscoveryOps = false;
     ghBTRCoreHdl = (tBTRCoreHandle)malloc(sizeof(stBTRCoreHdl)); // Allocate memory for BTRCore handle
+    BTRCore_StopDiscovery_ExpectAndReturn(ghBTRCoreHdl, 0, enBTRCoreSuccess);
     BTRMGR_ConnectedDevicesList_t lstConnectedDevices = {0};
     lstConnectedDevices.m_numOfDevices = 0; // No connected devices
 
