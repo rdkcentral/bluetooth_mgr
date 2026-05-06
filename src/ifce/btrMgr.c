@@ -4695,7 +4695,7 @@ BTRMGR_StartDeviceDiscovery_Internal (
 
             do {
                 usleep(5000);
-            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx));
+            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !isDeinitInProgress);
         }
 
         if (!gIsAdapterDiscovering) {
@@ -4776,7 +4776,7 @@ BTRMGR_StopDeviceDiscovery_Internal (
         {   /* Max 6 sec timeout - Polled at 50ms interval */
             unsigned int ui32sleepIdx = 120;
 
-            while ((gIsAdapterDiscovering) && (ui32sleepIdx--)) {
+            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress) {
                 usleep(50000);
             }
         }
