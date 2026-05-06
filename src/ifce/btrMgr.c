@@ -4775,11 +4775,11 @@ BTRMGR_StopDeviceDiscovery_Internal (
 
         {   /* Max 6 sec timeout - Polled at 50ms interval */
             unsigned int ui32sleepIdx = 120;
-
-            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress) {
-                usleep(50000);
-            }
-        }
+        do {
+            usleep(50000);
+            ui32sleepIdx--;
+		} while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress)
+		}
 
         if (gIsAdapterDiscovering) {
             BTRMGRLOG_WARN ("Discovery is not yet Stopped !!!\n");
