@@ -4778,7 +4778,7 @@ BTRMGR_StopDeviceDiscovery_Internal (
         do {
             usleep(50000);
             ui32sleepIdx--;
-		} while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress)
+		} while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress);
 		}
 
         if (gIsAdapterDiscovering) {
