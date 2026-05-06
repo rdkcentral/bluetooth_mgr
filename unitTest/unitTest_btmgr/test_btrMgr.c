@@ -124,6 +124,15 @@ void setUp(void)
     gstBTRMgrStreamingInfo.bitsPerSample = 0;
     gstBTRMgrStreamingInfo.i32BytesToEncode = 0;
 
+    /* Reset isDeinitInProgress so that DeInit tests do not leave it as TRUE
+     * for subsequent tests.  PR #97 added !isDeinitInProgress to the
+     * discovery wait-loops; without this reset the loops short-circuit in
+     * every test that follows a BTRMGR_DeInit call, which removes the ~6 s
+     * busy-wait that previously allowed the background reconnect thread
+     * (started by test_btrMgr_ConnectBackToDevice_Success) to finish before
+     * the latent mocks it relies on are torn down. */
+    isDeinitInProgress = FALSE;
+
 }
 void tearDown(void) {
     // Clean up any necessary variables or state after each test
