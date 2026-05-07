@@ -2239,7 +2239,7 @@ BTRMgr_TermIARMMode (
 
 #ifndef BUILD_FOR_PI
 	BTRMGRLOG_INFO("PowerController_Term started in internal\n");
-	//PowerController_Term();
+	PowerController_Term();
 	BTRMGRLOG_INFO("PowerController_Term ended in internal\n");
 #endif
     }
