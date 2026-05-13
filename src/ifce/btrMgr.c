@@ -4132,6 +4132,7 @@ BTRMGR_DeInit (
                     do {
                         sleep(ui32sleepTimeOut);
                         lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
+
                     } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
                 } while (--ui32confirmIdx);
             }
