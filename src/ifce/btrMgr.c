@@ -4685,7 +4685,7 @@ BTRMGR_StartDeviceDiscovery_Internal (
 
             do {
                 usleep(5000);
-            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx));
+            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !isDeinitInProgress);
         }
 
         if (!gIsAdapterDiscovering) {
@@ -4761,12 +4761,11 @@ BTRMGR_StopDeviceDiscovery_Internal (
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
     else {
-        BTRMGRLOG_INFO ("Discovery Stopped Successfully\n");
+        BTRMGRLOG_INFO ("Stop discovery requested successfully\n");
 
-        {   /* Max 3 sec timeout - Polled at 50ms second interval */
-            unsigned int ui32sleepIdx = 60;
-
-            while ((gIsAdapterDiscovering) && (ui32sleepIdx--)) {
+        {   /* Max 6 sec timeout - Polled at 50ms interval */
+            unsigned int ui32sleepIdx = 120;
+            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress) {
                 usleep(50000);
             }
         }

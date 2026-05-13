@@ -123,7 +123,7 @@ void setUp(void)
     gstBTRMgrStreamingInfo.channels = 0;
     gstBTRMgrStreamingInfo.bitsPerSample = 0;
     gstBTRMgrStreamingInfo.i32BytesToEncode = 0;
-
+    isDeinitInProgress = FALSE;
 }
 void tearDown(void) {
     // Clean up any necessary variables or state after each test
