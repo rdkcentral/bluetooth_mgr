@@ -3729,7 +3729,7 @@ static gboolean btrMgr_GetDiscoveredBatteryDevices(gpointer user_data)
 
     gTimeoutSeconds = gTimeoutSeconds + BTRMGR_BATTERY_DISCOVERY_TIME_INTERVAL;
 
-    memset(&discoveredDevices, 0, sizeof(discoveredDevices));
+    memset(&discoveredDevices, 0, 1000*sizeof(discoveredDevices));
     rc = BTRMGR_GetDiscoveredDevices(gDefaultAdapterContext.adapter_number, &discoveredDevices);
 
     for (i=0 ; i< discoveredDevices.m_numOfDevices; i++) {
@@ -3918,7 +3918,7 @@ BTRMGR_Init (
     isDeinitInProgress = FALSE;
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
-    MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
+    MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, 100*sizeof(gListOfAdapters));
 #ifndef LE_MODE
     MEMSET_S(&gstBTRMgrStreamingInfo, sizeof(gstBTRMgrStreamingInfo), 0, sizeof(gstBTRMgrStreamingInfo));
 #endif
