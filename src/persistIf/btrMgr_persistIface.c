@@ -48,6 +48,22 @@
 #define BTRMGR_PI_DEVID_LEN     17
 #define BTRMGR_PI_VOL_LEN       4
 
+#ifndef UNIT_TEST
+static const char*
+btrMgr_PI_GetPersistentDataPath(
+    void
+) {
+    if (access("/opt/lib/bluetooth/", F_OK) == 0) {
+        return BTRMGR_PERSISTENT_DATA_PATH_OPT_LIB;
+    }
+
+    return BTRMGR_PERSISTENT_DATA_PATH_SECURE;
+}
+
+#undef BTRMGR_PERSISTENT_DATA_PATH
+#define BTRMGR_PERSISTENT_DATA_PATH btrMgr_PI_GetPersistentDataPath()
+#endif
+
 typedef struct _stBTRMgrPIHdl {
     BTRMGR_PersistentData_t piData;
 } stBTRMgrPIHdl;
