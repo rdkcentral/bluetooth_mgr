@@ -69,8 +69,8 @@ typedef struct _stBTRMgrPIHdl {
 } stBTRMgrPIHdl;
 
 /* Static Function Prototypes */
-static char* readPersistentFile (char*  fileContent);
-static void writeToPersistentFile (char* fileName,cJSON* profileData);
+static char* readPersistentFile (const char*  fileContent);
+static void writeToPersistentFile (const char* fileName,cJSON* profileData);
 static eBTRMgrRet BTRMgr_PI_SetLastConnectedDevice(unsigned long long int deviceID);
 
 /* Local Op Threads Prototypes*/
@@ -80,7 +80,7 @@ static eBTRMgrRet BTRMgr_PI_SetLastConnectedDevice(unsigned long long int device
 /* Static Function Definition */
 static char*
 readPersistentFile (
-    char*   fileName
+    const char*   fileName
 ) {
     FILE *fp = NULL;
     char *fileContent = NULL;
@@ -120,7 +120,7 @@ readPersistentFile (
 
 static void
 writeToPersistentFile (
-    char*   fileName,
+    const char*   fileName,
     cJSON*  profileData
 ) {
     FILE *fp = NULL;
