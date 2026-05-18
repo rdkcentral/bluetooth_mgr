@@ -45,7 +45,6 @@
 #else
 #define BTRMGR_PERSISTENT_DATA_PATH_OPT_LIB "/opt/lib/bluetooth/btmgrPersist.json"
 #define BTRMGR_PERSISTENT_DATA_PATH_SECURE "/opt/secure/lib/bluetooth/btmgrPersist.json"
-#define BTRMGR_PERSISTENT_DATA_PATH BTRMGR_PERSISTENT_DATA_PATH_SECURE
 #endif
 #define BTRMGR_A2DP_SRC_PROFILE_ID  "0x110a"
 #define BTRMGR_A2DP_SINK_PROFILE_ID "0x110b"
