@@ -48,13 +48,29 @@
 #define BTRMGR_PI_DEVID_LEN     17
 #define BTRMGR_PI_VOL_LEN       4
 
+#ifndef UNIT_TEST
+static const char*
+btrMgr_PI_GetPersistentDataPath(
+    void
+) {
+    if (access("/opt/lib/bluetooth/", F_OK) == 0) {
+        return BTRMGR_PERSISTENT_DATA_PATH_OPT_LIB;
+    }
+
+    return BTRMGR_PERSISTENT_DATA_PATH_SECURE;
+}
+
+#undef BTRMGR_PERSISTENT_DATA_PATH
+#define BTRMGR_PERSISTENT_DATA_PATH btrMgr_PI_GetPersistentDataPath()
+#endif
+
 typedef struct _stBTRMgrPIHdl {
     BTRMGR_PersistentData_t piData;
 } stBTRMgrPIHdl;
 
 /* Static Function Prototypes */
-static char* readPersistentFile (char*  fileContent);
-static void writeToPersistentFile (char* fileName,cJSON* profileData);
+static char* readPersistentFile (const char*  fileContent);
+static void writeToPersistentFile (const char* fileName,cJSON* profileData);
 static eBTRMgrRet BTRMgr_PI_SetLastConnectedDevice(unsigned long long int deviceID);
 
 /* Local Op Threads Prototypes*/
@@ -64,7 +80,7 @@ static eBTRMgrRet BTRMgr_PI_SetLastConnectedDevice(unsigned long long int device
 /* Static Function Definition */
 static char*
 readPersistentFile (
-    char*   fileName
+    const char*   fileName
 ) {
     FILE *fp = NULL;
     char *fileContent = NULL;
@@ -104,7 +120,7 @@ readPersistentFile (
 
 static void
 writeToPersistentFile (
-    char*   fileName,
+    const char*   fileName,
     cJSON*  profileData
 ) {
     FILE *fp = NULL;

@@ -4093,7 +4093,6 @@ BTRMGR_DeInit (
     BTRMGR_DiscoveryHandle_t*       ldiscoveryHdl     = NULL;
     unsigned short                  ui16LoopIdx       = 0;
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
-    unsigned int                    ui32sleepTimeOut = 1;
     gboolean isRemoteDev = FALSE;
 
     isDeinitInProgress = TRUE;
@@ -4115,7 +4114,6 @@ BTRMGR_DeInit (
         BTRMGRLOG_DEBUG ("Connected Devices = %d\n", lstConnectedDevices.m_numOfDevices);
 
         for (ui16LoopIdx = 0; ui16LoopIdx < lstConnectedDevices.m_numOfDevices; ui16LoopIdx++) {
-            unsigned int            ui32confirmIdx  = 2;
             enBTRCoreDeviceType     lenBtrCoreDevTy = enBTRCoreUnknown;
             enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
 
@@ -4126,14 +4124,6 @@ BTRMGR_DeInit (
                 if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
                     BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
                 }
-                do {
-                    unsigned int ui32sleepIdx = 2;
-
-                    do {
-                        sleep(ui32sleepTimeOut);
-                        lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
-                    } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
-                } while (--ui32confirmIdx);
             }
         }
     }
@@ -4695,7 +4685,7 @@ BTRMGR_StartDeviceDiscovery_Internal (
 
             do {
                 usleep(5000);
-            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx));
+            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !isDeinitInProgress);
         }
 
         if (!gIsAdapterDiscovering) {
@@ -4771,12 +4761,11 @@ BTRMGR_StopDeviceDiscovery_Internal (
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
     }
     else {
-        BTRMGRLOG_INFO ("Discovery Stopped Successfully\n");
+        BTRMGRLOG_INFO ("Stop discovery requested successfully\n");
 
-        {   /* Max 3 sec timeout - Polled at 50ms second interval */
-            unsigned int ui32sleepIdx = 60;
-
-            while ((gIsAdapterDiscovering) && (ui32sleepIdx--)) {
+        {   /* Max 6 sec timeout - Polled at 50ms interval */
+            unsigned int ui32sleepIdx = 120;
+            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress) {
                 usleep(50000);
             }
         }
