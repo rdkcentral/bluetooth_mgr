@@ -1325,7 +1325,8 @@ BTRMgr_AC_Start (
             //start stream with added delay of 240 ms (240 + 260 == 500) 500 is max delay for broadcom and realtek
             pstBtrMgrRmfAcSettings->delayCompensation_ms += 240;
         #endif
-        
+        BTRMGRLOG_WARN("-----SETTING DELAY TO 0 FOR GAMEPAD TESTING\n");
+        pstBtrMgrRmfAcSettings->delayCompensation_ms = 50;
         BTRMGRLOG_INFO("Starting audio capture with delay compensation @ %d\n", pstBtrMgrRmfAcSettings->delayCompensation_ms);
         if ((leBtrMgrRmfAcRet = RMF_AudioCapture_Start(pstBtrMgrAcHdl->hBTRMgrRmfAcHdl, 
                                                        pstBtrMgrRmfAcSettings)) != RMF_SUCCESS) {
@@ -1386,6 +1387,9 @@ BTRMgr_AC_Start (
             //start stream with added delay of 240 ms (240 + 260 == 500) 500 is max delay for broadcom and realtek
             pstBtrMgrAcHdl->pstBtrMgrAcmSettings->delay_compensation_ms += 240;
         #endif
+        
+        BTRMGRLOG_WARN("-----SETTING DELAY TO 50 FOR GAMEPAD TESTING\n");
+        pstBtrMgrAcHdl->pstBtrMgrAcmSettings->delay_compensation_ms = 50;
         BTRMGRLOG_INFO("Starting audio capture with delay compensation @ %d\n", pstBtrMgrAcHdl->pstBtrMgrAcmSettings->delay_compensation_ms);
         MEMCPY_S(&lstBtrMgrIarmAcmArgs.details.arg_audio_properties,sizeof(lstBtrMgrIarmAcmArgs.details.arg_audio_properties),pstBtrMgrAcHdl->pstBtrMgrAcmSettings, sizeof(audio_properties_ifce_t));
 

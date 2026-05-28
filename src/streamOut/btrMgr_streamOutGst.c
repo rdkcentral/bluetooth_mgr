@@ -712,9 +712,9 @@ BTRMgr_SO_GstStart (
 
     if (BTRMgr_SO_GstCalculateDelayNeeded(pstBtrMgrSoGst, ai32BTDevDelay, &delay_comp_ms) == eBTRMgrSOGstSuccess)
     {
-        BTRMGRLOG_ERROR ("Setting delay compensation to %d ms\n", delay_comp_ms);
+        BTRMGRLOG_ERROR ("NOT Setting delay compensation to %d ms, setting to 0\n", delay_comp_ms);
 #ifndef BUILD_FOR_PI
-        g_object_set (delay, "min-threshold-time", delay_comp_ms * 1000000, NULL);
+        g_object_set (delay, "min-threshold-time", 0, NULL);
 #endif
     }
 
@@ -1005,7 +1005,8 @@ BTMgr_SO_GstSetDelay (tBTRMgrSoGstHdl hBTRMgrSoGstHdl, unsigned int delay_comp_m
     {
         BTRMGRLOG_ERROR("Stream element not yet created\n");
     }
-    g_object_set (delayqueue, "min-threshold-time", newDelayNanoSec, NULL);
+    BTRMGRLOG_ERROR("Not sedding delay to %lld, setting to 0\n", newDelayNanoSec);
+    g_object_set (delayqueue, "min-threshold-time", 0, NULL);
     return eBTRMgrSOGstSuccess;
 }
 
