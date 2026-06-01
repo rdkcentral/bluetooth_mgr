@@ -1,0 +1,43 @@
+name: BT-Mgr Native Full Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  merge_group:
+
+jobs:
+  native-build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Get branch name
+        id: get_branch
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BRANCH_NAME="${{ github.head_ref }}"
+          else
+            BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
+          fi
+          echo "branch_name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Make scripts executable
+        run: |
+          chmod +x build_dependencies.sh
+          chmod +x cov_build.sh
+
+      - name: Install dependencies and prepare local build inputs
+        env:
+          TARGET_BRANCH: ${{ steps.get_branch.outputs.branch_name }}
+        run: ./build_dependencies.sh
+
+      - name: Run native full build
+        run: ./cov_build.sh
+
+      - name: Find installed binaries
+        run: find "${{ github.workspace }}/local" -type f -executable || true
