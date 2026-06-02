@@ -1,0 +1,52 @@
+name: BT-Mgr Native Build
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  native-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------
+      # Checkout
+      # ----------------------------------------
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # ----------------------------------------
+      # Install dependencies
+      # ----------------------------------------
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            autoconf automake libtool pkg-config \
+            gcc g++ make \
+            libglib2.0-dev libdbus-1-dev libbluetooth-dev \
+            libudev-dev libreadline-dev \
+            git
+
+      # ----------------------------------------
+      # Permissions
+      # ----------------------------------------
+      - name: Make scripts executable
+        run: |
+          chmod +x build_dependencies.sh
+          chmod +x cov_build.sh
+
+      # ----------------------------------------
+      # Setup dependencies
+      # ----------------------------------------
+      - name: Setup dependencies
+        run: ./build_dependencies.sh
+
+      # ----------------------------------------
+      # Build
+      # ----------------------------------------
+      - name: Build bluetooth_mgr
+        run: ./cov_build.sh
