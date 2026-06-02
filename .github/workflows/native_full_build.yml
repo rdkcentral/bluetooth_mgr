@@ -1,0 +1,26 @@
+name: BT-Mgr Native Full Build
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  native-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Make scripts executable
+        run: |
+          chmod +x build_dependencies.sh
+          chmod +x cov_build.sh
+
+      - name: Run bt-mgr dependency setup
+        run: ./build_dependencies.sh
+
+      - name: Run bt-mgr native build
+        run: ./cov_build.sh
