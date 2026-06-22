@@ -1,0 +1,49 @@
+name: BT-Mgr Component Build in Native Environment
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: write
+  statuses: write
+
+on:
+  push:
+    branches: [ develop ]
+  merge_group:
+  pull_request:
+    branches: [ develop ]
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, closed, synchronize]
+
+jobs:
+  native-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------
+      # Checkout
+      # ----------------------------------------
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      # ----------------------------------------
+      # Setup scripts permission
+      # ----------------------------------------
+      - name: Make scripts executable
+        run: |
+          chmod +x build_dependencies.sh
+          chmod +x cov_build.sh
+
+      # ----------------------------------------
+      # Install dependencies
+      # ----------------------------------------
+      - name: Run bt-core dependency setup
+        run: ./build_dependencies.sh
+
+      # ----------------------------------------
+      # Build project
+      # ----------------------------------------
+      - name: Run bt-core native build
+        run: ./cov_build.sh
