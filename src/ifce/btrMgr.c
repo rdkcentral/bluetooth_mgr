@@ -4093,6 +4093,7 @@ BTRMGR_DeInit (
     BTRMGR_DiscoveryHandle_t*       ldiscoveryHdl     = NULL;
     unsigned short                  ui16LoopIdx       = 0;
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
+	unsigned int                    ui32sleepTimeOut = 1;
     gboolean isRemoteDev = FALSE;
 
     isDeinitInProgress = TRUE;
@@ -4114,6 +4115,7 @@ BTRMGR_DeInit (
         BTRMGRLOG_DEBUG ("Connected Devices = %d\n", lstConnectedDevices.m_numOfDevices);
 
         for (ui16LoopIdx = 0; ui16LoopIdx < lstConnectedDevices.m_numOfDevices; ui16LoopIdx++) {
+			unsigned int            ui32confirmIdx  = 2;
             enBTRCoreDeviceType     lenBtrCoreDevTy = enBTRCoreUnknown;
             enBTRCoreDeviceClass    lenBtrCoreDevCl = enBTRCore_DC_Unknown;
 
@@ -4124,6 +4126,14 @@ BTRMGR_DeInit (
                 if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
                     BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
                 }
+				do {
+                    unsigned int ui32sleepIdx = 2;
+
+                    do {
+                        sleep(ui32sleepTimeOut);
+                        lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy);
+                    } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32sleepIdx));
+                } while (--ui32confirmIdx);
             }
         }
     }
