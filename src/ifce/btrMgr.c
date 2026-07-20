@@ -4134,7 +4134,9 @@ BTRMGR_DeInit (
 
                     if (!ui32PollCount) {
                         BTRMGRLOG_WARN("Disconnect confirmation timeout for device %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
-                    }
+                    } else {
+                        BTRMGRLOG_WARN("Disconnect confirmed for device %llu in %dms\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, (10 - ui32PollCount) * 100);
+		            }
 				}
             }
         }
