@@ -4125,7 +4125,7 @@ BTRMGR_DeInit (
                     BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
                 }
                 if (lenBtrCoreDevTy == enBTRCoreSpeakers || lenBtrCoreDevTy == enBTRCoreHeadSet) {
-                    unsigned int ui32PollCount = 10;  /* 10 × 100ms = 1000ms max */
+                    unsigned int ui32PollCount = 7;  /* 7 × 100ms = 700ms max */
 
                     do {
                         usleep(100000);  /* 100ms */
