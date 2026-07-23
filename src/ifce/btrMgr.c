@@ -4095,6 +4095,20 @@ BTRMGR_DeInit (
                 if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
                     BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
                 }
+                if (lenBtrCoreDevTy == enBTRCoreSpeakers || lenBtrCoreDevTy == enBTRCoreHeadSet) {
+                    unsigned int ui32PollCount = 10;  /* 10 × 100ms = 1000ms max */
+
+                    do {
+                        usleep(100000);  /* 100ms */
+                        lenBtrCoreRet = BTRCore_GetDeviceDisconnected(ghBTRCoreHdl,lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle,lenBtrCoreDevTy);
+                    } while ((lenBtrCoreRet != enBTRCoreSuccess) && (--ui32PollCount));
+
+                    if (!ui32PollCount) {
+                        BTRMGRLOG_WARN("Disconnect confirmation timeout for device %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
+                    } else {
+                        BTRMGRLOG_WARN("Disconnect confirmed for device %llu in %dms\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, (10 - ui32PollCount) * 100);
+		            }
+				}
             }
         }
     }
