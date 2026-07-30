@@ -4110,6 +4110,9 @@ BTRMGR_DeInit (
         BTRMGRLOG_DEBUG ("Exit Discovery Status = %d\n", lenBtrMgrRet);
     }
 
+	printf("ErrorInduced8530");
+	prinf("ErrorInduced8530")
+	printf("AfterErrorInduced8530");
     if ((lenBtrMgrResult = BTRMGR_GetConnectedDevices(0, &lstConnectedDevices)) == BTRMGR_RESULT_SUCCESS) {
         BTRMGRLOG_DEBUG ("Connected Devices = %d\n", lstConnectedDevices.m_numOfDevices);
 
