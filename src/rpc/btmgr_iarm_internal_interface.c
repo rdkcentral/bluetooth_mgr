@@ -18,7 +18,8 @@
  */
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
+#include <pthread.h>
 
 #include "btmgr.h"
 #include "btrMgr_logger.h"
@@ -93,6 +94,18 @@ STATIC IARM_Result_t btrMgr_LeSetGattPropertyValue(void* arg);
 STATIC BTRMGR_Result_t btrMgr_EventCallback (BTRMGR_EventMessage_t astEventMessage); 
 
 STATIC unsigned char gIsBTRMGR_Internal_Inited = 0;
+
+/* Short-lived result cache for BTRMGR_IARM_METHOD_GET_CONNECTED_DEVICES.
+   Repeated calls within BTRMGR_CONNDEV_CACHE_TTL_MS milliseconds are served
+   from this cache to avoid redundant BlueZ/D-Bus queries. This flattens the
+   burst pattern of back-to-back GetConnectedDevices requests (IMMUI-32308). */
+#define BTRMGR_CONNDEV_CACHE_TTL_MS         500
+
+STATIC pthread_mutex_t                  gConnDevCacheMutex      = PTHREAD_MUTEX_INITIALIZER;
+STATIC BTRMGR_ConnectedDevicesList_t    gConnDevCache;
+STATIC struct timespec                  gConnDevCacheStamp      = {0, 0};
+STATIC unsigned char                    gConnDevCacheAdapterIdx = 0;
+STATIC unsigned char                    gConnDevCacheValid      = 0;
 
 
 /* STATIC Function Definition */
@@ -665,11 +678,38 @@ btrMgr_GetConnectedDevices (
         return retCode;
     }
 
+	/* Serve repeated requests from the short-lived cache (IMMUI-32308) to avoid
+       re-querying BlueZ for every back-to-back GetConnectedDevices call. */
+    pthread_mutex_lock (&gConnDevCacheMutex);
+    if (gConnDevCacheValid &&
+        (gConnDevCacheAdapterIdx == pConnectedDevices->m_adapterIndex)) {
+        struct timespec lNow = {0, 0};
+        long            lElapsedMs = 0;
+
+        clock_gettime (CLOCK_MONOTONIC, &lNow);
+        lElapsedMs = ((long)(lNow.tv_sec  - gConnDevCacheStamp.tv_sec)  * 1000L) +
+                     ((lNow.tv_nsec - gConnDevCacheStamp.tv_nsec) / 1000000L);
+
+        if ((lElapsedMs >= 0) && (lElapsedMs < BTRMGR_CONNDEV_CACHE_TTL_MS)) {
+            memcpy (&pConnectedDevices->m_devices, &gConnDevCache, sizeof(BTRMGR_ConnectedDevicesList_t));
+            pthread_mutex_unlock (&gConnDevCacheMutex);
+            BTRMGRLOG_INFO ("Served %u connected device(s) from cache (age %ld ms)\n",
+                             pConnectedDevices->m_devices.m_numOfDevices, lElapsedMs);
+            return IARM_RESULT_SUCCESS;
+        }
+    }
+    pthread_mutex_unlock (&gConnDevCacheMutex);
 
     rc = BTRMGR_GetConnectedDevices(pConnectedDevices->m_adapterIndex, &pConnectedDevices->m_devices);
     if (BTRMGR_RESULT_SUCCESS == rc) {
-        BTRMGRLOG_TRACE ("Success\n");
-    }
+		pthread_mutex_lock (&gConnDevCacheMutex);
+        memcpy (&gConnDevCache, &pConnectedDevices->m_devices, sizeof(BTRMGR_ConnectedDevicesList_t));
+        gConnDevCacheAdapterIdx = pConnectedDevices->m_adapterIndex;
+        clock_gettime (CLOCK_MONOTONIC, &gConnDevCacheStamp);
+        gConnDevCacheValid = 1;
+        pthread_mutex_unlock (&gConnDevCacheMutex);
+       BTRMGRLOG_TRACE ("Success\n");
+   }
     else {
         retCode = IARM_RESULT_IPCCORE_FAIL; /* We do not have other IARM Error code to describe this. */
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", rc);
