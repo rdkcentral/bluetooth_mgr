@@ -37,6 +37,8 @@
 #define STATIC 
 #endif 
 
+extern gboolean isDeinitInProgress;
+
 /* STATIC Function Prototypes */
 STATIC IARM_Result_t btrMgr_GetNumberOfAdapters (void* arg);
 STATIC IARM_Result_t btrMgr_SetAdapterName (void* arg);
@@ -94,6 +96,11 @@ STATIC BTRMGR_Result_t btrMgr_EventCallback (BTRMGR_EventMessage_t astEventMessa
 
 STATIC unsigned char gIsBTRMGR_Internal_Inited = 0;
 
+#define BTRMGR_IARM_CHECK_DEINIT() \
+    if (isDeinitInProgress) { \
+        BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
+        return IARM_RESULT_INVALID_STATE; \
+    }
 
 /* STATIC Function Definition */
 STATIC IARM_Result_t
@@ -112,6 +119,8 @@ btrMgr_GetNumberOfAdapters (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pNumberOfAdapters) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -150,6 +159,8 @@ btrMgr_SetAdapterName (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pName) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -185,6 +196,8 @@ btrMgr_GetAdapterName (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pName) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -222,6 +235,8 @@ btrMgr_SetAdapterPowerStatus (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pPowerStatus) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -257,6 +272,8 @@ btrMgr_GetAdapterPowerStatus (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pPowerStatus) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -294,6 +311,8 @@ btrMgr_SetAdapterDiscoverable (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pDiscoverable) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -330,6 +349,8 @@ btrMgr_IsAdapterDiscoverable (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pDiscoverable) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -365,6 +386,8 @@ btrMgr_ChangeDeviceDiscoveryStatus (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pAdapterIndex) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -406,6 +429,8 @@ btrMgr_GetDeviceDiscoveryStatus (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pDiscoverStatus) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -438,6 +463,8 @@ btrMgr_GetDiscoveredDevices (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pDiscoveredDevices) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -474,6 +501,8 @@ btrMgr_PairDevice (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pPairDevice) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -513,6 +542,8 @@ btrMgr_UnpairDevice (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pUnPairDevice) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -551,6 +582,8 @@ btrMgr_GetPairedDevices (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pPairedDevices) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -586,6 +619,8 @@ btrMgr_ConnectToDevice (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pConnect) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -623,6 +658,8 @@ btrMgr_DisconnectFromDevice (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pConnect) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -658,6 +695,8 @@ btrMgr_GetConnectedDevices (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pConnectedDevices) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -695,6 +734,8 @@ btrMgr_GetDeviceProperties (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pDeviceProperty) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -728,6 +769,8 @@ btrMgr_GetDeviceBatteryLevel (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pDeviceBattLevelInfo) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -765,6 +808,8 @@ btrMgr_StartAudioStreamingOut (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pStartStream) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -800,6 +845,8 @@ btrMgr_StopAudioStreamingOut (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pStopStream) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -837,6 +884,8 @@ btrMgr_IsAudioStreamingOut (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pStreamStatus) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -872,6 +921,8 @@ btrMgr_SetAudioStreamOutType (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pStartStream) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -909,6 +960,8 @@ btrMgr_StartAudioStreamingIn (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pStartStream) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -944,6 +997,8 @@ btrMgr_StopAudioStreamingIn (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pStopStream) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -981,6 +1036,8 @@ btrMgr_IsAudioStreamingIn (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pStreamStatus) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1017,6 +1074,8 @@ btrMgr_SetEventResponse (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pIArmEvtResp) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1050,6 +1109,8 @@ btrMgr_MediaControl (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pMediaProperty) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1086,6 +1147,8 @@ btrMgr_GetMediaCurrentPosition (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pMediaProperty) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1120,6 +1183,8 @@ btrMgr_GetDataPathConfInfo (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pdevStreamConfig) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1157,6 +1222,8 @@ btrMgr_ReleaseDataPath
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pdevStreamRelease) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1192,6 +1259,8 @@ btrMgr_StartSendingAudioFromFile (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pdevFileStreamConfig) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1226,6 +1295,8 @@ btrMgr_StopSendingAudioFromFile (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     rc = BTRMGR_StopSendingAudioFromFile();
     if (BTRMGR_RESULT_SUCCESS == rc) {
         BTRMGRLOG_INFO ("Success\n");
@@ -1254,6 +1325,8 @@ btrMgr_GetDeviceVolumeMute (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pdevvolmut) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1289,6 +1362,8 @@ btrMgr_SetDeviceVolumeMute (
 	return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pdevvolmut) {
 	retCode = IARM_RESULT_INVALID_PARAM;
 	BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1322,6 +1397,8 @@ btrMgr_SetDeviceDelay (
 	BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
 	return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pdevdelay) {
 	retCode = IARM_RESULT_INVALID_PARAM;
@@ -1357,6 +1434,8 @@ btrMgr_GetDeviceDelay (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pdevdelay) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1390,6 +1469,8 @@ btrMgr_GetMediaTrackInfo (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pMediaProperty) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1426,6 +1507,8 @@ btrMgr_GetMediaElementTrackInfo (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pMediaProperty) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1459,6 +1542,8 @@ btrMgr_SetMediaElementActive (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;     
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
     
     if (!pMedElementList) {  
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1497,6 +1582,8 @@ btrMgr_GetMediaElementList (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pMedElementList) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1539,6 +1626,8 @@ btrMgr_SelectMediaElement (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pMedElementList) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1578,6 +1667,8 @@ btrMgr_GetLeProperty (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!leProperty) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1649,6 +1740,8 @@ btrMgr_PerformLeOp (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!leOp) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1683,6 +1776,8 @@ btrMgr_GetLimitBeaconDetection (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!pBeaconDetection) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -1716,6 +1811,8 @@ btrMgr_SetLimitBeaconDetection (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pBeaconDetection) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1753,6 +1850,7 @@ STATIC IARM_Result_t btrMgr_LeStartAdvertisement(void* arg)
     }
     else
     {
+        BTRMGR_IARM_CHECK_DEINIT();
         rc = BTRMGR_LE_StartAdvertisement(lpstAdvtInfo->m_adapterIndex, &lpstAdvtInfo->m_CustAdvt);
 
         if (BTRMGR_RESULT_SUCCESS == rc)
@@ -1786,6 +1884,7 @@ STATIC IARM_Result_t btrMgr_LeStopAdvertisement(void *arg)
     }
     else
     {
+        BTRMGR_IARM_CHECK_DEINIT();
         rc = BTRMGR_LE_StopAdvertisement(*lpAdapterIndex);
 
         if (BTRMGR_RESULT_SUCCESS == rc)
@@ -1819,6 +1918,7 @@ STATIC IARM_Result_t btrMgr_LeGetPropertyValue(void* arg)
     }
     else
     {
+        BTRMGR_IARM_CHECK_DEINIT();
         rc = BTRMGR_LE_GetPropertyValue(lpstGattInfo->m_adapterIndex, lpstGattInfo->m_UUID, lpstGattInfo->m_Value, lpstGattInfo->aElement);
 
         if (BTRMGR_RESULT_SUCCESS == rc)
@@ -1852,6 +1952,7 @@ STATIC IARM_Result_t btrMgr_LeSetServiceInfo(void* arg)
     }
     else
     {
+        BTRMGR_IARM_CHECK_DEINIT();
         rc = BTRMGR_LE_SetServiceInfo(lpstGattServiceInfo->m_adapterIndex, lpstGattServiceInfo->m_UUID, lpstGattServiceInfo->m_ServiceType);
 
         if (BTRMGR_RESULT_SUCCESS == rc)
@@ -1885,6 +1986,7 @@ STATIC IARM_Result_t btrMgr_LeSetGattInfo(void* arg)
     }
     else
     {
+        BTRMGR_IARM_CHECK_DEINIT();
         rc = BTRMGR_LE_SetGattInfo(lpstGattInfo->m_adapterIndex, lpstGattInfo->m_ParentUUID, lpstGattInfo->m_UUID, lpstGattInfo->m_Flags, lpstGattInfo->m_Value, lpstGattInfo->m_Element);
 
         if (BTRMGR_RESULT_SUCCESS == rc)
@@ -1917,6 +2019,7 @@ STATIC IARM_Result_t btrMgr_LeSetGattPropertyValue(void* arg) {
     }
     else
     {
+        BTRMGR_IARM_CHECK_DEINIT();
         rc = BTRMGR_LE_SetGattPropertyValue(lpstGattInfo->m_adapterIndex, lpstGattInfo->m_UUID, lpstGattInfo->m_Value, lpstGattInfo->aElement);
 
         if (BTRMGR_RESULT_SUCCESS == rc)
@@ -1947,6 +2050,8 @@ btrMgr_SetAudioInServiceState (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!audioInSerivceState) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -1982,6 +2087,8 @@ btrMgr_SetBtmgrDebugModeState (
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     if (!ui8DebugModeState) {
         retCode = IARM_RESULT_INVALID_PARAM;
         BTRMGRLOG_ERROR ("Failed; RetCode = %d\n", retCode);
@@ -2014,6 +2121,8 @@ btrMgr_SetHidGamePadServiceState (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!hidGamePadSerivceState) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -2049,6 +2158,8 @@ btrMgr_SysDiagInfo(
         return retCode;
     }
 
+    BTRMGR_IARM_CHECK_DEINIT();
+
     rc = BTRMGR_SysDiagInfo(lDiagInfo->m_adapterIndex, lDiagInfo->m_UUID, lDiagInfo->m_DiagInfo, lDiagInfo->m_OpType);
     if (BTRMGR_RESULT_SUCCESS == rc) {
         BTRMGRLOG_INFO("Success\n");
@@ -2076,6 +2187,8 @@ btrMgr_ConnectToWifi(
         BTRMGRLOG_ERROR("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     rc = BTRMGR_ConnectToWifi(lWifiInfo->m_adapterIndex, lWifiInfo->m_SSID, lWifiInfo->m_Password, lWifiInfo->m_SecMode);
 
@@ -2106,6 +2219,8 @@ btrMgr_ResetAdapter (
         BTRMGRLOG_ERROR ("BTRMgr is not Inited\n");
         return retCode;
     }
+
+    BTRMGR_IARM_CHECK_DEINIT();
 
     if (!pAdapterIndex) {
         retCode = IARM_RESULT_INVALID_PARAM;
@@ -2147,6 +2262,7 @@ BTRMgr_BeginIARMMode (
     BTRMGRLOG_INFO ("Entering\n");
 
     if (!gIsBTRMGR_Internal_Inited) {
+        BTRMGR_IARM_CHECK_DEINIT();
         gIsBTRMGR_Internal_Inited = 1;
         IARM_Bus_Init(IARM_BUS_BTRMGR_NAME);
         IARM_Bus_Connect();
