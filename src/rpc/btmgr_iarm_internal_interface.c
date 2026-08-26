@@ -37,6 +37,7 @@
 #define STATIC 
 #endif 
 
+/* Identify if BTRMGR_DeInit is in progress */
 extern gboolean isDeinitInProgress;
 
 /* STATIC Function Prototypes */
