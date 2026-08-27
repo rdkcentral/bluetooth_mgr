@@ -425,8 +425,6 @@ STATIC unsigned char btrMgr_CheckIfDevicePrevDetected (BTRMgrDeviceHandle ahBTRM
 STATIC BTRMGR_DeviceType_t btrMgr_MapDeviceTypeFromCore (enBTRCoreDeviceClass device_type);
 STATIC BTRMGR_DeviceOperationType_t btrMgr_MapDeviceOpFromDeviceType (BTRMGR_DeviceType_t device_type);
 STATIC BTRMGR_RSSIValue_t btrMgr_MapSignalStrengthToRSSI (int signalStrength);
-STATIC BTRMGR_ConnectionFailureReason_t btrMgr_GetConnectionFailureReason (BTRMgrDeviceHandle ahBTRMgrDevHdl, enBTRCoreDeviceType aenBTRCoreDevType);
-STATIC BTRMGR_ConnectionFailureReason_t btrMgr_WaitForConnectionFailureReason (BTRMgrDeviceHandle ahBTRMgrDevHdl, enBTRCoreDeviceType aenBTRCoreDevType);
 STATIC eBTRMgrRet btrMgr_MapDevstatusInfoToEventInfo (void* p_StatusCB, BTRMGR_EventMessage_t* apstEventMessage, BTRMGR_Events_t type);
 STATIC eBTRMgrRet btrMgr_GetDeviceProductDetails(BTRMgrDeviceHandle  ahBTRMgrDevHdl, unsigned int *pui32MproductId,unsigned int *pui32MVendorId);
 STATIC gboolean btrMgr_IsPS4Gamepad(BTRMgrDeviceHandle  ahBTRMgrDevHdl);
@@ -1934,72 +1932,6 @@ btrMgr_MapSignalStrengthToRSSI (
     return rssi;
 }
 
-STATIC BTRMGR_ConnectionFailureReason_t
-btrMgr_GetConnectionFailureReason (
-    BTRMgrDeviceHandle ahBTRMgrDevHdl,
-    enBTRCoreDeviceType aenBTRCoreDevType
-) {
-    enBTRCoreConnectError lenCoreReason = enBTRCoreConnectErrorUnknown;
-    BTRMGR_ConnectionFailureReason_t lenReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
-
-    BTRMGRLOG_DEBUG("Reading connection failure reason device=%llu coreType=%d\n",
-                    ahBTRMgrDevHdl, aenBTRCoreDevType);
-    if (BTRCore_GetDeviceConnectError(ghBTRCoreHdl, ahBTRMgrDevHdl,
-                                      aenBTRCoreDevType,
-                                      &lenCoreReason) != enBTRCoreSuccess) {
-        BTRMGRLOG_WARN("Connection failure reason unavailable device=%llu\n",
-                       ahBTRMgrDevHdl);
-        return lenReason;
-    }
-
-    switch (lenCoreReason) {
-    case enBTRCoreConnectErrorPermissionDenied:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_PERMISSION_DENIED;
-        break;
-    case enBTRCoreConnectErrorRefused:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_REFUSED;
-        break;
-    case enBTRCoreConnectErrorTimedOut:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT;
-        break;
-    case enBTRCoreConnectErrorHostDown:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN;
-        break;
-    case enBTRCorePairErrorAuthenticationFailed:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED;
-        break;
-    case enBTRCoreConnectErrorUnknown:
-    default:
-        BTRMGRLOG_DEBUG("No specific failure reason recorded device=%llu core=%d\n",
-                        ahBTRMgrDevHdl, lenCoreReason);
-        break;
-    }
-
-    BTRMGRLOG_INFO("Connection failure reason device=%llu core=%d btmgr=%d\n",
-                   ahBTRMgrDevHdl, lenCoreReason, lenReason);
-    return lenReason;
-}
-
-STATIC BTRMGR_ConnectionFailureReason_t
-btrMgr_WaitForConnectionFailureReason (
-    BTRMgrDeviceHandle ahBTRMgrDevHdl,
-    enBTRCoreDeviceType aenBTRCoreDevType
-) {
-    BTRMGR_ConnectionFailureReason_t lenReason;
-    unsigned char ui8Attempts = 10;
-
-    do {
-        lenReason = btrMgr_GetConnectionFailureReason(ahBTRMgrDevHdl,
-                                                       aenBTRCoreDevType);
-        if (lenReason != BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN)
-            return lenReason;
-
-        usleep(100000);
-    } while (--ui8Attempts);
-
-    return lenReason;
-}
-
 STATIC eBTRMgrRet
 btrMgr_MapDevstatusInfoToEventInfo (
     void*                   p_StatusCB,         /* device status info */
@@ -2891,7 +2823,6 @@ btrMgr_ConnectToDevice (
     int                 i32PairDevIdx       = 0;
     unsigned int        ui32retryIdx        = aui32ConnectRetryIdx + 1;
     enBTRCoreDeviceType lenBTRCoreDeviceType= enBTRCoreUnknown;
-    BTRMGR_ConnectionFailureReason_t lenConnectionFailureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
 
     lenBtrMgrRet = btrMgr_PreCheckDiscoveryStatus(aui8AdapterIdx, connectAs);
 
@@ -2972,7 +2903,6 @@ btrMgr_ConnectToDevice (
             const char* lpcDeviceAddress = stDeviceInfo.pcDeviceAddress ? stDeviceInfo.pcDeviceAddress : "Unknown";
 
             if (lenBtrCoreRet != enBTRCoreSuccess) {
-                lenConnectionFailureReason = btrMgr_WaitForConnectionFailureReason(ahBTRMgrDevHdl, lenBTRCoreDeviceType);
                 //This is telemetry log. If we change this print,need to change and configure the telemetry string in xconf server.
                 char buffer[256];
                 snprintf(buffer, sizeof(buffer), "%s,%u,%u,v%04Xp%04Xd%04X",
@@ -2993,7 +2923,6 @@ btrMgr_ConnectToDevice (
 
                     lstEventMessage.m_adapterIndex  = aui8AdapterIdx;
                     lstEventMessage.m_eventType     = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
-                    lstEventMessage.m_connectionFailureReason = lenConnectionFailureReason;
                     MEMCPY_S(&lstEventMessage.m_pairedDevice, sizeof(BTRMGR_PairedDevices_t), &gListOfPairedDevices.m_deviceProperty[i32PairDevIdx], sizeof(BTRMGR_PairedDevices_t));
 
                     if (gfpcBBTRMgrEventOut) {
@@ -3066,18 +2995,6 @@ btrMgr_ConnectToDevice (
             }
         }
     } while ((lenBtrMgrRet == eBTRMgrFailure) && (--ui32retryIdx));
-
-    if ((lenBtrMgrRet == eBTRMgrFailure) && (lenBTRCoreDeviceType == enBTRCoreLE)) {
-        BTRMGR_EventMessage_t lstEventMessage;
-        MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
-        btrMgr_GetPairedDevInfo(ahBTRMgrDevHdl, &lstEventMessage.m_pairedDevice);
-        lstEventMessage.m_adapterIndex = aui8AdapterIdx;
-        lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
-        lstEventMessage.m_connectionFailureReason = lenConnectionFailureReason;
-
-        if (gfpcBBTRMgrEventOut)
-            gfpcBBTRMgrEventOut(lstEventMessage);
-    }
 
     if (lenBtrMgrRet == eBTRMgrFailure && lenBTRCoreDeviceType == enBTRCoreLE) {
         connectAs = BTRMGR_DEVICE_OP_TYPE_UNKNOWN;
@@ -3386,7 +3303,6 @@ btrMgr_StartAudioStreamingOut (
         }
         else if (lenBtrMgrRet == eBTRMgrFailure) {
             lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
-            lstEventMessage.m_connectionFailureReason = btrMgr_WaitForConnectionFailureReason(listOfPDevices.devices[i].tDeviceId, lenBTRCoreDevTy);
 
             if (gfpcBBTRMgrEventOut) {
                 gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
@@ -5206,9 +5122,6 @@ BTRMGR_PairDevice (
 
     lstEventMessage.m_adapterIndex = aui8AdapterIdx;
     lstEventMessage.m_eventType    = lBtMgrOutEvent;
-    if (lBtMgrOutEvent == BTRMGR_EVENT_DEVICE_PAIRING_FAILED)
-        lstEventMessage.m_connectionFailureReason =
-            btrMgr_WaitForConnectionFailureReason(ahBTRMgrDevHdl, lenBTRCoreDevTy);
 
     if ((lenBtrMgrResult != BTRMGR_RESULT_SUCCESS) ||
         ((lenBtrMgrResult == BTRMGR_RESULT_SUCCESS) &&
@@ -5308,8 +5221,6 @@ BTRMGR_PairDevice (
                 lenBtrMgrResult = BTRMGR_RESULT_SUCCESS;
             } else {
                 lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
-                lstEventMessage.m_connectionFailureReason =
-                    btrMgr_WaitForConnectionFailureReason(ahBTRMgrDevHdl, lenBTRCoreDevTy);
                 lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
             }
 
@@ -10528,9 +10439,6 @@ btrMgr_ConnectionInIntimationCb (
         BTRMGRLOG_ERROR ("Failed to pair a device\n");
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
         lBtMgrOutEvent  = BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
-        lstEventMessage.m_connectionFailureReason =
-            btrMgr_WaitForConnectionFailureReason(lstEventMessage.m_discoveredDevice.m_deviceHandle,
-                                                   lBtrMgrDevType);
     }
 
 

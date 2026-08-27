@@ -132,15 +132,6 @@ typedef enum _BTRMGR_Result_t {
     BTRMGR_RESULT_INIT_FAILED = -3
 } BTRMGR_Result_t;
 
-typedef enum _BTRMGR_ConnectionFailureReason_t {
-    BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN = 0,
-    BTRMGR_CONNECTION_FAILURE_REASON_PERMISSION_DENIED,
-    BTRMGR_CONNECTION_FAILURE_REASON_REFUSED,
-    BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT,
-    BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN,
-    BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED
-} BTRMGR_ConnectionFailureReason_t;
-
 /**
  * @brief Represents the event status.
  */
@@ -711,7 +702,6 @@ typedef struct _BTRMGR_EventMessage_t {
         BTRMGR_DeviceOpInfo_t       m_deviceOpInfo;
 	BTRMGR_BatteryInfo_t        m_batteryInfo;
     };
-    BTRMGR_ConnectionFailureReason_t m_connectionFailureReason;
 } BTRMGR_EventMessage_t;
 
 /**
