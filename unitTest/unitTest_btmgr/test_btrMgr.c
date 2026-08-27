@@ -3520,6 +3520,60 @@ void test_MapSignalStrengthToRSSI_Poor(void)
     TEST_ASSERT_EQUAL(BTRMGR_RSSI_POOR, btrMgr_MapSignalStrengthToRSSI(signalStrength));
 }
 
+void test_GetConnectionFailureReason_PermissionDenied(void)
+{
+    enBTRCoreConnectError reason = enBTRCoreConnectErrorPermissionDenied;
+    ghBTRCoreHdl = (tBTRCoreHandle)0x1;
+    BTRCore_GetDeviceConnectError_ExpectAndReturn(ghBTRCoreHdl, 1, enBTRCoreHID, &reason, enBTRCoreSuccess);
+    BTRCore_GetDeviceConnectError_ReturnThruPtr_apenConnectError(&reason);
+
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_PERMISSION_DENIED,
+                      btrMgr_GetConnectionFailureReason(1, enBTRCoreHID));
+}
+
+void test_GetConnectionFailureReason_Refused(void)
+{
+    enBTRCoreConnectError reason = enBTRCoreConnectErrorRefused;
+    ghBTRCoreHdl = (tBTRCoreHandle)0x1;
+    BTRCore_GetDeviceConnectError_ExpectAndReturn(ghBTRCoreHdl, 1, enBTRCoreSpeakers, &reason, enBTRCoreSuccess);
+    BTRCore_GetDeviceConnectError_ReturnThruPtr_apenConnectError(&reason);
+
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_REFUSED,
+                      btrMgr_GetConnectionFailureReason(1, enBTRCoreSpeakers));
+}
+
+void test_GetConnectionFailureReason_TimedOut(void)
+{
+    enBTRCoreConnectError reason = enBTRCoreConnectErrorTimedOut;
+    ghBTRCoreHdl = (tBTRCoreHandle)0x1;
+    BTRCore_GetDeviceConnectError_ExpectAndReturn(ghBTRCoreHdl, 1, enBTRCoreLE, &reason, enBTRCoreSuccess);
+    BTRCore_GetDeviceConnectError_ReturnThruPtr_apenConnectError(&reason);
+
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT,
+                      btrMgr_GetConnectionFailureReason(1, enBTRCoreLE));
+}
+
+void test_GetConnectionFailureReason_HostDown(void)
+{
+    enBTRCoreConnectError reason = enBTRCoreConnectErrorHostDown;
+    ghBTRCoreHdl = (tBTRCoreHandle)0x1;
+    BTRCore_GetDeviceConnectError_ExpectAndReturn(ghBTRCoreHdl, 1, enBTRCoreHID, &reason, enBTRCoreSuccess);
+    BTRCore_GetDeviceConnectError_ReturnThruPtr_apenConnectError(&reason);
+
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN,
+                      btrMgr_GetConnectionFailureReason(1, enBTRCoreHID));
+}
+
+void test_GetConnectionFailureReason_UnknownOnLookupFailure(void)
+{
+    enBTRCoreConnectError reason = enBTRCoreConnectErrorUnknown;
+    ghBTRCoreHdl = (tBTRCoreHandle)0x1;
+    BTRCore_GetDeviceConnectError_ExpectAndReturn(ghBTRCoreHdl, 1, enBTRCoreUnknown, &reason, enBTRCoreFailure);
+
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN,
+                      btrMgr_GetConnectionFailureReason(1, enBTRCoreUnknown));
+}
+
 // Utility function to create a mock stBTRCoreBTDevice
 stBTRCoreBTDevice createMockBTRCoreBTDevice(void)
 {
