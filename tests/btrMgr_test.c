@@ -512,6 +512,20 @@ const char* getEventAsString (BTRMGR_Events_t etype)
   return event;
 }
 
+static const char*
+getConnectionFailureSubStatus (BTRMGR_ConnectionFailureReason_t reason)
+{
+        switch (reason) {
+        case BTRMGR_CONNECTION_FAILURE_REASON_PERMISSION_DENIED: return "permission-denied";
+        case BTRMGR_CONNECTION_FAILURE_REASON_REFUSED: return "connection-refused";
+        case BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT: return "connection-timeout";
+        case BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN: return "connection-host-down";
+        case BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED: return "authentication-failed";
+        case BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN:
+        default: return "unknown";
+        }
+}
+
 
 BTRMGR_Result_t eventCallback (BTRMGR_EventMessage_t event)
 {
@@ -638,6 +652,7 @@ BTRMGR_Result_t eventCallback (BTRMGR_EventMessage_t event)
         printf("\t DevHandle = %lld\n", event.m_discoveredDevice.m_deviceHandle);
         printf("\t DevType   = %s\n", BTRMGR_GetDeviceTypeAsString(event.m_discoveredDevice.m_deviceType));
         printf("\t DevAddr   = %s\n", event.m_discoveredDevice.m_deviceAddress);
+        printf("\t subStatus = %s\n", getConnectionFailureSubStatus(event.m_connectionFailureReason));
         break;
     case BTRMGR_EVENT_DEVICE_UNPAIRING_COMPLETE:
     case BTRMGR_EVENT_DEVICE_UNPAIRING_FAILED:
@@ -649,6 +664,8 @@ BTRMGR_Result_t eventCallback (BTRMGR_EventMessage_t event)
         printf("\t DevHandle = %lld\n", event.m_pairedDevice.m_deviceHandle);
         printf("\t DevType   = %s\n", BTRMGR_GetDeviceTypeAsString(event.m_pairedDevice.m_deviceType));
         printf("\t DevAddr   = %s\n", event.m_pairedDevice.m_deviceAddress);
+        if (event.m_eventType == BTRMGR_EVENT_DEVICE_CONNECTION_FAILED)
+            printf("\t subStatus = %s\n", getConnectionFailureSubStatus(event.m_connectionFailureReason));
         break;
 #ifndef LE_MODE
     case BTRMGR_EVENT_MEDIA_TRACK_STARTED:
