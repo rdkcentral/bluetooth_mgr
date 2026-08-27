@@ -37,6 +37,8 @@
 #define STATIC 
 #endif 
 
+#include <glib.h>
+
 /* Identify if BTRMGR_DeInit is in progress */
 extern gboolean isDeinitInProgress;
 
@@ -97,11 +99,21 @@ STATIC BTRMGR_Result_t btrMgr_EventCallback (BTRMGR_EventMessage_t astEventMessa
 
 STATIC unsigned char gIsBTRMGR_Internal_Inited = 0;
 
-#define BTRMGR_IARM_CHECK_DEINIT() \
+#define BTRMGR_IARM_CHECK_DEINIT_VOID() \
+do { \
     if (isDeinitInProgress) { \
-        BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
-        return IARM_RESULT_INVALID_STATE; \
-    }
+       BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
+       return; \
+   } \
+} while (0)
+
+#define BTRMGR_IARM_CHECK_DEINIT() \
+do { \
+    if (isDeinitInProgress) { \
+       BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
+       return IARM_RESULT_INVALID_STATE; \
+   } \
+} while (0)
 
 /* STATIC Function Definition */
 STATIC IARM_Result_t
@@ -2263,7 +2275,7 @@ BTRMgr_BeginIARMMode (
     BTRMGRLOG_INFO ("Entering\n");
 
     if (!gIsBTRMGR_Internal_Inited) {
-        BTRMGR_IARM_CHECK_DEINIT();
+        BTRMGR_IARM_CHECK_DEINIT_VOID();
         gIsBTRMGR_Internal_Inited = 1;
         IARM_Bus_Init(IARM_BUS_BTRMGR_NAME);
         IARM_Bus_Connect();
