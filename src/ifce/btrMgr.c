@@ -176,6 +176,23 @@ typedef struct _BTRMGR_IncomingAuthThreadData {
     stBTRCoreDevStatusCBInfo statusCbInfo;
 } BTRMGR_IncomingAuthThreadData;
 
+typedef enum _BTRMGR_DeviceOperationKind_t {
+    BTRMGR_DEVICE_OPERATION_NONE,
+    BTRMGR_DEVICE_OPERATION_PAIR,
+    BTRMGR_DEVICE_OPERATION_CONNECT,
+    BTRMGR_DEVICE_OPERATION_AUDIO_START,
+    BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO,
+    BTRMGR_DEVICE_OPERATION_AUTO_CONNECT
+} BTRMGR_DeviceOperationKind_t;
+
+typedef struct _BTRMGR_DeviceOperationState_t {
+    BTRMgrDeviceHandle                   deviceHandle;
+    BTRMGR_DeviceOperationKind_t         operationKind;
+    BTRMGR_ConnectionFailureReason_t     failureReason;
+    gboolean                             active;
+    gboolean                             failureEventSent;
+} BTRMGR_DeviceOperationState_t;
+
 //TODO: Move to a local handle. Mutex protect all
 STATIC GMainContext*                    gmainContext                = NULL;
 STATIC tBTRCoreHandle                   ghBTRCoreHdl                = NULL;
@@ -252,6 +269,9 @@ STATIC BOOLEAN                          gIsDiscoveryOpInternal      = FALSE;
 STATIC BOOLEAN                          gEliteIncomCon              = FALSE;
 STATIC BOOLEAN                          gbGamepadStandbyMode        = FALSE;
 static GMutex                           gBtrMgrAuthMutex;
+STATIC GMutex                           gBtrMgrDeviceOperationMutex;
+STATIC BTRMGR_DeviceOperationState_t    gBtrMgrDeviceOperations[BTRMGR_DISCOVERED_DEVICE_COUNT_MAX];
+STATIC gboolean                         gBtrMgrDeviceOperationTrackingReady = FALSE;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BOOLEAN                          gSkipVolumeUpdate           = FALSE;
 STATIC volatile guint                   gSkipVolumeUpdateTimeoutRef = 0;
@@ -425,8 +445,18 @@ STATIC unsigned char btrMgr_CheckIfDevicePrevDetected (BTRMgrDeviceHandle ahBTRM
 STATIC BTRMGR_DeviceType_t btrMgr_MapDeviceTypeFromCore (enBTRCoreDeviceClass device_type);
 STATIC BTRMGR_DeviceOperationType_t btrMgr_MapDeviceOpFromDeviceType (BTRMGR_DeviceType_t device_type);
 STATIC BTRMGR_RSSIValue_t btrMgr_MapSignalStrengthToRSSI (int signalStrength);
+STATIC BTRMGR_ConnectionFailureReason_t btrMgr_MapConnectionFailureReason (enBTRCoreConnectError aenCoreReason);
 STATIC BTRMGR_ConnectionFailureReason_t btrMgr_GetConnectionFailureReason (BTRMgrDeviceHandle ahBTRMgrDevHdl, enBTRCoreDeviceType aenBTRCoreDevType);
 STATIC BTRMGR_ConnectionFailureReason_t btrMgr_WaitForConnectionFailureReason (BTRMgrDeviceHandle ahBTRMgrDevHdl, enBTRCoreDeviceType aenBTRCoreDevType);
+STATIC BTRMGR_Events_t btrMgr_GetFailureEventType (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_ConnectionFailureReason_t aenFailureReason);
+STATIC void btrMgr_SetFailureEventDeviceInfo (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_EventMessage_t* apstEventMessage);
+STATIC void btrMgr_ResetDeviceOperationTracking (gboolean abReady);
+STATIC gboolean btrMgr_BeginDeviceOperation (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind);
+STATIC gboolean btrMgr_BeginDeviceOperationIfIdle (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind);
+STATIC gboolean btrMgr_RecordDeviceOperationFailure (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_ConnectionFailureReason_t aenFailureReason, BTRMGR_DeviceOperationKind_t* apenOperationKind);
+STATIC gboolean btrMgr_ClaimDeviceOperationFailureEvent (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind, BTRMGR_ConnectionFailureReason_t* apenFailureReason);
+STATIC gboolean btrMgr_PostDeviceOperationFailure (unsigned char aui8AdapterIdx, BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind, BTRMGR_ConnectionFailureReason_t aenFailureReason, const char* apcOperationName);
+STATIC void btrMgr_CompleteDeviceOperation (BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind);
 STATIC eBTRMgrRet btrMgr_MapDevstatusInfoToEventInfo (void* p_StatusCB, BTRMGR_EventMessage_t* apstEventMessage, BTRMGR_Events_t type);
 STATIC eBTRMgrRet btrMgr_GetDeviceProductDetails(BTRMgrDeviceHandle  ahBTRMgrDevHdl, unsigned int *pui32MproductId,unsigned int *pui32MVendorId);
 STATIC gboolean btrMgr_IsPS4Gamepad(BTRMgrDeviceHandle  ahBTRMgrDevHdl);
@@ -498,6 +528,7 @@ STATIC eBTRMgrRet btrMgr_SIStatusCb (stBTRMgrMediaStatus* apstBtrMgrSiStatus, vo
 STATIC eBTRMgrRet btrMgr_SDStatusCb (stBTRMgrSysDiagStatus* apstBtrMgrSdStatus, void* apvUserData);
 
 STATIC enBTRCoreRet btrMgr_DeviceStatusCb (stBTRCoreDevStatusCBInfo* p_StatusCB, void* apvUserData);
+STATIC enBTRCoreRet btrMgr_ConnectionFailureCb (stBTRCoreConnectionFailureCBInfo* apstConnectionFailureCbInfo, void* apvUserData);
 STATIC enBTRCoreRet btrMgr_DeviceDiscoveryCb (stBTRCoreDiscoveryCBInfo* astBTRCoreDiscoveryCbInfo, void* apvUserData);
 STATIC enBTRCoreRet btrMgr_ConnectionInIntimationCb (stBTRCoreConnCBInfo* apstConnCbInfo, int* api32ConnInIntimResp, void* apvUserData);
 STATIC enBTRCoreRet btrMgr_ConnectionInAuthenticationCb (stBTRCoreConnCBInfo* apstConnCbInfo, int* api32ConnInAuthResp, void* apvUserData);
@@ -1727,6 +1758,7 @@ btrMgr_ConnectCb(
 
     BTRMGR_ConnectionInformation_t * deviceConnectionHdl = (BTRMGR_ConnectionInformation_t *) gpDeviceConnectionHdl;
     guint8 reconnectAttepts = 0;
+    eBTRMgrRet lenBtrMgrRet = eBTRMgrFailure;
     if (gpDeviceConnectionHdl == NULL)
     {
         BTRMGRLOG_ERROR("Invalid parameter\n");
@@ -1735,12 +1767,29 @@ btrMgr_ConnectCb(
     BTRMGRLOG_INFO("waiting to reconnect for %u seconds\n", deviceConnectionHdl->timeToWait);
     sleep(deviceConnectionHdl->timeToWait);
     BTRMGRLOG_INFO("Connecting back to device %lld, and starting audio\n", deviceConnectionHdl->deviceHandle);
-    while (eBTRMgrSuccess != btrMgr_StartAudioStreamingOut(deviceConnectionHdl->lui8AdapterIdx, deviceConnectionHdl->deviceHandle, deviceConnectionHdl->connectAs, 0,0,0) && reconnectAttepts < BTMGR_RECONNECTION_ATTEMPTS)
+    if (!btrMgr_BeginDeviceOperation(deviceConnectionHdl->deviceHandle, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO)) {
+        BTRMGRLOG_INFO("Skipping overlapping audio reconnect device=%llu\n", deviceConnectionHdl->deviceHandle);
+        free(deviceConnectionHdl);
+        return NULL;
+    }
+    while ((lenBtrMgrRet = btrMgr_StartAudioStreamingOut(deviceConnectionHdl->lui8AdapterIdx, deviceConnectionHdl->deviceHandle, deviceConnectionHdl->connectAs, 0,0,0)) != eBTRMgrSuccess && reconnectAttepts < BTMGR_RECONNECTION_ATTEMPTS)
     {
         BTRMGRLOG_INFO("waiting to reconnect for %u seconds\n", deviceConnectionHdl->timeToWait);
         sleep(deviceConnectionHdl->timeToWait);
         BTRMGRLOG_INFO("Connecting back to device %lld, and starting audio\n", deviceConnectionHdl->deviceHandle);
         reconnectAttepts++;
+    }
+    if (lenBtrMgrRet == eBTRMgrSuccess) {
+        btrMgr_CompleteDeviceOperation(deviceConnectionHdl->deviceHandle, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO);
+    }
+    else {
+        BTRMGR_ConnectionFailureReason_t lenFailureReason =
+            btrMgr_WaitForConnectionFailureReason(deviceConnectionHdl->deviceHandle, enBTRCoreSpeakers);
+        btrMgr_PostDeviceOperationFailure(deviceConnectionHdl->lui8AdapterIdx,
+                                          deviceConnectionHdl->deviceHandle,
+                                          BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO,
+                                          lenFailureReason,
+                                          "audio-reconnect");
     }
     free(deviceConnectionHdl);
     deviceConnectionHdl = NULL;
@@ -1934,6 +1983,246 @@ btrMgr_MapSignalStrengthToRSSI (
     return rssi;
 }
 
+STATIC BTRMGR_DeviceOperationState_t*
+btrMgr_GetDeviceOperationStateLocked (
+    BTRMgrDeviceHandle ahBTRMgrDevHdl,
+    gboolean           abCreate
+) {
+    BTRMGR_DeviceOperationState_t* lpstFreeState = NULL;
+    unsigned int ui32Idx = 0;
+
+    for (ui32Idx = 0; ui32Idx < BTRMGR_DISCOVERED_DEVICE_COUNT_MAX; ui32Idx++) {
+        if (gBtrMgrDeviceOperations[ui32Idx].deviceHandle == ahBTRMgrDevHdl) {
+            return &gBtrMgrDeviceOperations[ui32Idx];
+        }
+        if (!gBtrMgrDeviceOperations[ui32Idx].deviceHandle && !lpstFreeState) {
+            lpstFreeState = &gBtrMgrDeviceOperations[ui32Idx];
+        }
+    }
+
+    if (abCreate && lpstFreeState) {
+        lpstFreeState->deviceHandle = ahBTRMgrDevHdl;
+        return lpstFreeState;
+    }
+
+    return NULL;
+}
+
+STATIC void
+btrMgr_ResetDeviceOperationTracking (
+    gboolean abReady
+) {
+    g_mutex_lock(&gBtrMgrDeviceOperationMutex);
+    MEMSET_S(gBtrMgrDeviceOperations, sizeof(gBtrMgrDeviceOperations), 0, sizeof(gBtrMgrDeviceOperations));
+    gBtrMgrDeviceOperationTrackingReady = abReady;
+    g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
+
+    BTRMGRLOG_INFO("Device operation tracking %s\n", abReady ? "ready" : "disabled");
+}
+
+STATIC gboolean
+btrMgr_BeginDeviceOperation (
+    BTRMgrDeviceHandle           ahBTRMgrDevHdl,
+    BTRMGR_DeviceOperationKind_t aenOperationKind
+) {
+    BTRMGR_DeviceOperationState_t* lpstState = NULL;
+    gboolean lbStarted = FALSE;
+    BTRMGR_DeviceOperationKind_t lenExistingKind = BTRMGR_DEVICE_OPERATION_NONE;
+
+    g_mutex_lock(&gBtrMgrDeviceOperationMutex);
+    lpstState = btrMgr_GetDeviceOperationStateLocked(ahBTRMgrDevHdl, TRUE);
+    if (lpstState && !lpstState->active) {
+        lpstState->operationKind = aenOperationKind;
+        lpstState->failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+        lpstState->active = TRUE;
+        lpstState->failureEventSent = FALSE;
+        lbStarted = TRUE;
+    }
+    else if (lpstState) {
+        lenExistingKind = lpstState->operationKind;
+    }
+    g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
+
+    if (lbStarted) {
+        BTRMGRLOG_INFO("Started device operation device=%llu kind=%d\n", ahBTRMgrDevHdl, aenOperationKind);
+    }
+    else if (!lpstState) {
+        BTRMGRLOG_ERROR("No free device operation slot device=%llu kind=%d\n", ahBTRMgrDevHdl, aenOperationKind);
+    }
+    else {
+        BTRMGRLOG_INFO("Device operation already active device=%llu existingKind=%d requestedKind=%d\n",
+                       ahBTRMgrDevHdl, lenExistingKind, aenOperationKind);
+    }
+    return lbStarted;
+}
+
+STATIC gboolean
+btrMgr_BeginDeviceOperationIfIdle (
+    BTRMgrDeviceHandle           ahBTRMgrDevHdl,
+    BTRMGR_DeviceOperationKind_t aenOperationKind
+) {
+    BTRMGR_DeviceOperationState_t* lpstState = NULL;
+    gboolean lbStarted = FALSE;
+
+    g_mutex_lock(&gBtrMgrDeviceOperationMutex);
+    lpstState = btrMgr_GetDeviceOperationStateLocked(ahBTRMgrDevHdl, TRUE);
+    if (lpstState && !lpstState->active) {
+        lpstState->operationKind = aenOperationKind;
+        lpstState->failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+        lpstState->active = TRUE;
+        lpstState->failureEventSent = FALSE;
+        lbStarted = TRUE;
+    }
+    g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
+
+    if (lbStarted) {
+        BTRMGRLOG_INFO("Started internal device operation device=%llu kind=%d\n", ahBTRMgrDevHdl, aenOperationKind);
+    }
+    return lbStarted;
+}
+
+STATIC gboolean
+btrMgr_RecordDeviceOperationFailure (
+    BTRMgrDeviceHandle                    ahBTRMgrDevHdl,
+    BTRMGR_ConnectionFailureReason_t      aenFailureReason,
+    BTRMGR_DeviceOperationKind_t*         apenOperationKind
+) {
+    BTRMGR_DeviceOperationState_t* lpstState = NULL;
+    gboolean lbSendAutoFailure = FALSE;
+
+    g_mutex_lock(&gBtrMgrDeviceOperationMutex);
+    if (gBtrMgrDeviceOperationTrackingReady) {
+        lpstState = btrMgr_GetDeviceOperationStateLocked(ahBTRMgrDevHdl, TRUE);
+        if (lpstState) {
+            if (lpstState->active) {
+                lpstState->failureReason = aenFailureReason;
+            }
+            else if (!lpstState->failureEventSent) {
+                lpstState->operationKind = BTRMGR_DEVICE_OPERATION_AUTO_CONNECT;
+                lpstState->failureReason = aenFailureReason;
+                lpstState->active = FALSE;
+                lpstState->failureEventSent = TRUE;
+                lbSendAutoFailure = TRUE;
+            }
+            if (apenOperationKind) {
+                *apenOperationKind = lpstState->operationKind;
+            }
+        }
+    }
+    g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
+
+    return lbSendAutoFailure;
+}
+
+STATIC gboolean
+btrMgr_ClaimDeviceOperationFailureEvent (
+    BTRMgrDeviceHandle                    ahBTRMgrDevHdl,
+    BTRMGR_DeviceOperationKind_t          aenOperationKind,
+    BTRMGR_ConnectionFailureReason_t*     apenFailureReason
+) {
+    BTRMGR_DeviceOperationState_t* lpstState = NULL;
+    gboolean lbSendEvent = FALSE;
+
+    g_mutex_lock(&gBtrMgrDeviceOperationMutex);
+    lpstState = btrMgr_GetDeviceOperationStateLocked(ahBTRMgrDevHdl, FALSE);
+    if (lpstState && lpstState->operationKind == aenOperationKind && !lpstState->failureEventSent) {
+        if (apenFailureReason && lpstState->failureReason != BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN) {
+            *apenFailureReason = lpstState->failureReason;
+        }
+        lpstState->active = FALSE;
+        lpstState->failureEventSent = TRUE;
+        lbSendEvent = TRUE;
+    }
+    g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
+
+    BTRMGRLOG_INFO("Failure event claim device=%llu kind=%d send=%u reason=%d\n",
+                   ahBTRMgrDevHdl, aenOperationKind, lbSendEvent,
+                   apenFailureReason ? *apenFailureReason : BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN);
+    return lbSendEvent;
+}
+
+STATIC gboolean
+btrMgr_PostDeviceOperationFailure (
+    unsigned char                       aui8AdapterIdx,
+    BTRMgrDeviceHandle                  ahBTRMgrDevHdl,
+    BTRMGR_DeviceOperationKind_t        aenOperationKind,
+    BTRMGR_ConnectionFailureReason_t    aenFailureReason,
+    const char*                         apcOperationName
+) {
+    BTRMGR_EventMessage_t lstEventMessage;
+
+    if (!btrMgr_ClaimDeviceOperationFailureEvent(ahBTRMgrDevHdl, aenOperationKind, &aenFailureReason)) {
+        BTRMGRLOG_INFO("Skipped duplicate final failure device=%llu kind=%d operation=%s\n",
+                       ahBTRMgrDevHdl, aenOperationKind, apcOperationName ? apcOperationName : "unknown");
+        return FALSE;
+    }
+
+    MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+    lstEventMessage.m_adapterIndex = aui8AdapterIdx;
+    lstEventMessage.m_connectionFailureReason = aenFailureReason;
+    lstEventMessage.m_eventType = (aenOperationKind == BTRMGR_DEVICE_OPERATION_PAIR) ?
+                                  BTRMGR_EVENT_DEVICE_PAIRING_FAILED :
+                                  btrMgr_GetFailureEventType(ahBTRMgrDevHdl, aenFailureReason);
+    btrMgr_SetFailureEventDeviceInfo(ahBTRMgrDevHdl, &lstEventMessage);
+
+    BTRMGRLOG_INFO("Posting final device operation failure device=%llu kind=%d event=%d reason=%d operation=%s\n",
+                   ahBTRMgrDevHdl, aenOperationKind, lstEventMessage.m_eventType,
+                   aenFailureReason, apcOperationName ? apcOperationName : "unknown");
+    if (gfpcBBTRMgrEventOut) {
+        gfpcBBTRMgrEventOut(lstEventMessage);
+    }
+    return TRUE;
+}
+
+STATIC void
+btrMgr_CompleteDeviceOperation (
+    BTRMgrDeviceHandle           ahBTRMgrDevHdl,
+    BTRMGR_DeviceOperationKind_t aenOperationKind
+) {
+    BTRMGR_DeviceOperationState_t* lpstState = NULL;
+    gboolean lbCompleted = FALSE;
+
+    g_mutex_lock(&gBtrMgrDeviceOperationMutex);
+    lpstState = btrMgr_GetDeviceOperationStateLocked(ahBTRMgrDevHdl, FALSE);
+    if (lpstState && (((aenOperationKind == BTRMGR_DEVICE_OPERATION_NONE) &&
+                       (lpstState->operationKind != BTRMGR_DEVICE_OPERATION_PAIR)) ||
+                      (lpstState->operationKind == aenOperationKind))) {
+        lpstState->operationKind = BTRMGR_DEVICE_OPERATION_NONE;
+        lpstState->failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+        lpstState->active = FALSE;
+        lpstState->failureEventSent = FALSE;
+        lbCompleted = TRUE;
+    }
+    g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
+
+    if (lbCompleted) {
+        BTRMGRLOG_INFO("Completed device operation device=%llu kind=%d\n", ahBTRMgrDevHdl, aenOperationKind);
+    }
+}
+
+STATIC BTRMGR_ConnectionFailureReason_t
+btrMgr_MapConnectionFailureReason (
+    enBTRCoreConnectError aenCoreReason
+) {
+    switch (aenCoreReason) {
+    case enBTRCoreConnectErrorPermissionDenied:
+        return BTRMGR_CONNECTION_FAILURE_REASON_PERMISSION_DENIED;
+    case enBTRCoreConnectErrorRefused:
+        return BTRMGR_CONNECTION_FAILURE_REASON_REFUSED;
+    case enBTRCoreConnectErrorTimedOut:
+        return BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT;
+    case enBTRCoreConnectErrorHostDown:
+        return BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN;
+    case enBTRCorePairErrorAuthenticationFailed:
+        return BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED;
+    case enBTRCoreConnectErrorUnknown:
+    default:
+        break;
+    }
+
+    return BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+}
+
 STATIC BTRMGR_ConnectionFailureReason_t
 btrMgr_GetConnectionFailureReason (
     BTRMgrDeviceHandle ahBTRMgrDevHdl,
@@ -1952,27 +2241,10 @@ btrMgr_GetConnectionFailureReason (
         return lenReason;
     }
 
-    switch (lenCoreReason) {
-    case enBTRCoreConnectErrorPermissionDenied:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_PERMISSION_DENIED;
-        break;
-    case enBTRCoreConnectErrorRefused:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_REFUSED;
-        break;
-    case enBTRCoreConnectErrorTimedOut:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT;
-        break;
-    case enBTRCoreConnectErrorHostDown:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN;
-        break;
-    case enBTRCorePairErrorAuthenticationFailed:
-        lenReason = BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED;
-        break;
-    case enBTRCoreConnectErrorUnknown:
-    default:
+    lenReason = btrMgr_MapConnectionFailureReason(lenCoreReason);
+    if (lenReason == BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN) {
         BTRMGRLOG_DEBUG("No specific failure reason recorded device=%llu core=%d\n",
                         ahBTRMgrDevHdl, lenCoreReason);
-        break;
     }
 
     BTRMGRLOG_INFO("Connection failure reason device=%llu core=%d btmgr=%d\n",
@@ -1998,6 +2270,45 @@ btrMgr_WaitForConnectionFailureReason (
     } while (--ui8Attempts);
 
     return lenReason;
+}
+
+STATIC BTRMGR_Events_t
+btrMgr_GetFailureEventType (
+    BTRMgrDeviceHandle ahBTRMgrDevHdl,
+    BTRMGR_ConnectionFailureReason_t aenFailureReason
+) {
+    unsigned char ui8isDevicePaired = btrMgr_GetDevPaired(ahBTRMgrDevHdl);
+    unsigned char ui8isDeviceConnected = btrMgr_IsDevConnected(ahBTRMgrDevHdl);
+
+    if ((aenFailureReason == BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED) &&
+        !ui8isDevicePaired && !ui8isDeviceConnected) {
+        BTRMGRLOG_INFO("Auth failure for unpaired and disconnected device %llu - reporting pairing failed\n", ahBTRMgrDevHdl);
+        return BTRMGR_EVENT_DEVICE_PAIRING_FAILED;
+    }
+
+    BTRMGRLOG_INFO("Failure state for device %llu paired=%u connected=%u reason=%d - reporting connection failed\n",
+                   ahBTRMgrDevHdl, ui8isDevicePaired, ui8isDeviceConnected, aenFailureReason);
+    return BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
+}
+
+STATIC void
+btrMgr_SetFailureEventDeviceInfo (
+    BTRMgrDeviceHandle ahBTRMgrDevHdl,
+    BTRMGR_EventMessage_t* apstEventMessage
+) {
+    if (!apstEventMessage)
+        return;
+
+    if (apstEventMessage->m_eventType == BTRMGR_EVENT_DEVICE_PAIRING_FAILED) {
+        btrMgr_GetDiscoveredDevInfo(ahBTRMgrDevHdl, &apstEventMessage->m_discoveredDevice);
+        if (apstEventMessage->m_discoveredDevice.m_deviceHandle != ahBTRMgrDevHdl)
+            apstEventMessage->m_discoveredDevice.m_deviceHandle = ahBTRMgrDevHdl;
+    }
+    else {
+        btrMgr_GetPairedDevInfo(ahBTRMgrDevHdl, &apstEventMessage->m_pairedDevice);
+        if (apstEventMessage->m_pairedDevice.m_deviceHandle != ahBTRMgrDevHdl)
+            apstEventMessage->m_pairedDevice.m_deviceHandle = ahBTRMgrDevHdl;
+    }
 }
 
 STATIC eBTRMgrRet
@@ -2925,6 +3236,8 @@ btrMgr_ConnectToDevice (
         break;
     } 
 
+    btrMgr_BeginDeviceOperationIfIdle(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_CONNECT);
+
 
     do {
         /* connectAs param is unused for now.. */
@@ -2987,18 +3300,8 @@ btrMgr_ConnectToDevice (
                 lenBtrMgrRet = eBTRMgrFailure;
 
                 if (lenBTRCoreDeviceType == enBTRCoreHID) {
-                    ghBTRMgrDevHdlConnInProgress = 0;
-                    BTRMGR_EventMessage_t lstEventMessage;
-                    MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
-
-                    lstEventMessage.m_adapterIndex  = aui8AdapterIdx;
-                    lstEventMessage.m_eventType     = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
-                    lstEventMessage.m_connectionFailureReason = lenConnectionFailureReason;
-                    MEMCPY_S(&lstEventMessage.m_pairedDevice, sizeof(BTRMGR_PairedDevices_t), &gListOfPairedDevices.m_deviceProperty[i32PairDevIdx], sizeof(BTRMGR_PairedDevices_t));
-
-                    if (gfpcBBTRMgrEventOut) {
-                        gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
-                    }
+                    BTRMGRLOG_INFO("HID connection attempt failed device=%llu retryRemaining=%u reason=%d\n",
+                                   ahBTRMgrDevHdl, ui32retryIdx - 1, lenConnectionFailureReason);
                 }
 
                 /* Skipped disconnecting the HID device. During connection failure, LE gamepads are removed from the kernel auto-connect list,
@@ -3063,20 +3366,20 @@ btrMgr_ConnectToDevice (
                     BTRMGRLOG_INFO("Clearing the disconnected handle since the same device connected again\n");
                     ghBTRMgrDevHdlLastDisconnected = 0;
                 }
+                btrMgr_CompleteDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_CONNECT);
             }
         }
     } while ((lenBtrMgrRet == eBTRMgrFailure) && (--ui32retryIdx));
 
-    if ((lenBtrMgrRet == eBTRMgrFailure) && (lenBTRCoreDeviceType == enBTRCoreLE)) {
-        BTRMGR_EventMessage_t lstEventMessage;
-        MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
-        btrMgr_GetPairedDevInfo(ahBTRMgrDevHdl, &lstEventMessage.m_pairedDevice);
-        lstEventMessage.m_adapterIndex = aui8AdapterIdx;
-        lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
-        lstEventMessage.m_connectionFailureReason = lenConnectionFailureReason;
-
-        if (gfpcBBTRMgrEventOut)
-            gfpcBBTRMgrEventOut(lstEventMessage);
+    if (lenBtrMgrRet == eBTRMgrFailure) {
+        if (lenBTRCoreDeviceType == enBTRCoreHID) {
+            ghBTRMgrDevHdlConnInProgress = 0;
+        }
+        btrMgr_PostDeviceOperationFailure(aui8AdapterIdx,
+                                          ahBTRMgrDevHdl,
+                                          BTRMGR_DEVICE_OPERATION_CONNECT,
+                                          lenConnectionFailureReason,
+                                          "connect-retries");
     }
 
     if (lenBtrMgrRet == eBTRMgrFailure && lenBTRCoreDeviceType == enBTRCoreLE) {
@@ -3385,16 +3688,20 @@ btrMgr_StartAudioStreamingOut (
             }
         }
         else if (lenBtrMgrRet == eBTRMgrFailure) {
-            lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
-            lstEventMessage.m_connectionFailureReason = btrMgr_WaitForConnectionFailureReason(listOfPDevices.devices[i].tDeviceId, lenBTRCoreDevTy);
-
-            if (gfpcBBTRMgrEventOut) {
-                gfpcBBTRMgrEventOut(lstEventMessage); /*  Post a callback */
-            }
+            BTRMGR_ConnectionFailureReason_t lenFailureReason =
+                btrMgr_WaitForConnectionFailureReason(listOfPDevices.devices[i].tDeviceId, lenBTRCoreDevTy);
+            btrMgr_PostDeviceOperationFailure(aui8AdapterIdx,
+                                              listOfPDevices.devices[i].tDeviceId,
+                                              BTRMGR_DEVICE_OPERATION_AUDIO_START,
+                                              lenFailureReason,
+                                              "audio-start");
         }
         else {
             //TODO: Some error specific event to XRE
         }
+    }
+    if (lenBtrMgrRet == eBTRMgrSuccess) {
+        btrMgr_CompleteDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_NONE);
     }
 #ifdef RDKTV_PERSIST_VOLUME
     if (ghBTRMgrDevHdlVolSetupInProgress != 0) {
@@ -4000,6 +4307,7 @@ BTRMGR_Init (
     char btmgr_name[] = "btmgr";
     telemetry_init(btmgr_name);
     isDeinitInProgress = FALSE;
+    btrMgr_ResetDeviceOperationTracking(FALSE);
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
     MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
@@ -4056,6 +4364,7 @@ BTRMGR_Init (
 #endif //LE_MODE
     /* Register for callback to get the status of connected Devices */
     BTRCore_RegisterStatusCb(ghBTRCoreHdl, btrMgr_DeviceStatusCb, NULL);
+    BTRCore_RegisterConnectionFailureCb(ghBTRCoreHdl, btrMgr_ConnectionFailureCb, NULL);
 
     /* Register for callback to get the Discovered Devices */
     BTRCore_RegisterDiscoveryCb(ghBTRCoreHdl, btrMgr_DeviceDiscoveryCb, NULL);
@@ -4089,6 +4398,7 @@ BTRMGR_Init (
 
     /* Initialize the Paired Device List for Default adapter */
     BTRMGR_GetPairedDevices (gDefaultAdapterContext.adapter_number, &gListOfPairedDevices);
+    btrMgr_ResetDeviceOperationTracking(TRUE);
 
 
     // Init Persistent handles
@@ -4180,6 +4490,7 @@ BTRMGR_DeInit (
     gboolean isRemoteDev = FALSE;
 
     isDeinitInProgress = TRUE;
+    btrMgr_ResetDeviceOperationTracking(FALSE);
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
@@ -5133,6 +5444,11 @@ BTRMGR_PairDevice (
         BTRMGRLOG_WARN ("Pairing Rejected - BTR AudioIn is currently Disabled!\n");
         return BTRMGR_RESULT_GENERIC_FAILURE;
     }
+
+    if (!btrMgr_BeginDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_PAIR)) {
+        BTRMGRLOG_INFO("Rejecting overlapping pairing operation device=%llu\n", ahBTRMgrDevHdl);
+        return BTRMGR_RESULT_GENERIC_FAILURE;
+    }
     /* We always need a agent to get the pairing done.. if no agent registered, default agent will be used.
      * But we will not able able to get the PIN and other stuff received at our level. We have to have agent
      * for pairing process..
@@ -5213,7 +5529,15 @@ BTRMGR_PairDevice (
     if ((lenBtrMgrResult != BTRMGR_RESULT_SUCCESS) ||
         ((lenBtrMgrResult == BTRMGR_RESULT_SUCCESS) &&
         ((lenBTRCoreDevTy != enBTRCoreHID) && (lenBTRCoreDevTy != enBTRCoreMobileAudioIn) && (lenBTRCoreDevTy != enBTRCorePCAudioIn)))) {
-        if (gfpcBBTRMgrEventOut) {
+        if (gfpcBBTRMgrEventOut &&
+            ((lBtMgrOutEvent != BTRMGR_EVENT_DEVICE_PAIRING_FAILED) ||
+             btrMgr_ClaimDeviceOperationFailureEvent(ahBTRMgrDevHdl,
+                                                     BTRMGR_DEVICE_OPERATION_PAIR,
+                                                     &lstEventMessage.m_connectionFailureReason))) {
+            if (lBtMgrOutEvent == BTRMGR_EVENT_DEVICE_PAIRING_FAILED) {
+                BTRMGRLOG_INFO("Posting immediate pairing failure device=%llu reason=%d\n",
+                               ahBTRMgrDevHdl, lstEventMessage.m_connectionFailureReason);
+            }
             gfpcBBTRMgrEventOut(lstEventMessage);
         }
     }
@@ -5313,7 +5637,15 @@ BTRMGR_PairDevice (
                 lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
             }
 
-            if (gfpcBBTRMgrEventOut) {
+            if (gfpcBBTRMgrEventOut &&
+                ((lstEventMessage.m_eventType != BTRMGR_EVENT_DEVICE_PAIRING_FAILED) ||
+                 btrMgr_ClaimDeviceOperationFailureEvent(ahBTRMgrDevHdl,
+                                                         BTRMGR_DEVICE_OPERATION_PAIR,
+                                                         &lstEventMessage.m_connectionFailureReason))) {
+                if (lstEventMessage.m_eventType == BTRMGR_EVENT_DEVICE_PAIRING_FAILED) {
+                    BTRMGRLOG_INFO("Posting final pairing failure device=%llu reason=%d\n",
+                                   ahBTRMgrDevHdl, lstEventMessage.m_connectionFailureReason);
+                }
                 gfpcBBTRMgrEventOut(lstEventMessage);
             }
 
@@ -5344,6 +5676,11 @@ BTRMGR_PairDevice (
                 BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", ahBTRMgrDevHdl);
             }
         } 
+    }
+
+    if (ui8isDevicePaired || bIsPS4 ||
+        ((lenBtrMgrResult == BTRMGR_RESULT_SUCCESS) && (lenBTRCoreDevTy != enBTRCoreHID))) {
+        btrMgr_CompleteDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_PAIR);
     }
 
     btrMgr_PostCheckDiscoveryStatus(aui8AdapterIdx, btrMgr_MapDeviceOpFromDeviceType( btrMgr_MapDeviceTypeFromCore(lenBTRCoreDevCl)));
@@ -5619,9 +5956,24 @@ BTRMGR_ConnectToDevice (
         return BTRMGR_RESULT_GENERIC_FAILURE;
     }
 
+    if (!btrMgr_BeginDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_CONNECT)) {
+        BTRMGRLOG_INFO("Rejecting overlapping connection operation device=%llu\n", ahBTRMgrDevHdl);
+        return BTRMGR_RESULT_GENERIC_FAILURE;
+    }
+
     if (btrMgr_ConnectToDevice(aui8AdapterIdx, ahBTRMgrDevHdl, connectAs, 0, 1) != eBTRMgrSuccess) {
+        BTRMGR_ConnectionFailureReason_t lenFailureReason =
+            btrMgr_WaitForConnectionFailureReason(ahBTRMgrDevHdl, lenBTRCoreDevTy);
         BTRMGRLOG_ERROR ("Failure\n");
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
+        btrMgr_PostDeviceOperationFailure(aui8AdapterIdx,
+                                          ahBTRMgrDevHdl,
+                                          BTRMGR_DEVICE_OPERATION_CONNECT,
+                                          lenFailureReason,
+                                          "explicit-connect");
+    }
+    else {
+        btrMgr_CompleteDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_CONNECT);
     }
 
     return  lenBtrMgrResult;
@@ -6443,10 +6795,26 @@ BTRMGR_StartAudioStreamingOut_StartUp (
                     if ((lenBtrMgrResult == BTRMGR_RESULT_GENERIC_FAILURE) ||
                         (!strncmp(lPropValue, BTRMGR_SYS_DIAG_PWRST_ON, strlen(BTRMGR_SYS_DIAG_PWRST_ON)) &&
                         (gIsAudOutStartupInProgress != BTRMGR_STARTUP_AUD_COMPLETED))) {
+                        eBTRMgrRet lenStartupRet;
                         BTRMGRLOG_INFO ("Streaming to Device  = %lld\n", lDeviceHandle);
-                        if (btrMgr_StartAudioStreamingOut(0, lDeviceHandle, aenBTRMgrDevConT, 1, 1, 1) != eBTRMgrSuccess) {
+                        if (!btrMgr_BeginDeviceOperation(lDeviceHandle, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO)) {
+                            BTRMGRLOG_INFO("Skipping overlapping startup audio operation device=%llu\n", lDeviceHandle);
+                            continue;
+                        }
+                        lenStartupRet = btrMgr_StartAudioStreamingOut(0, lDeviceHandle, aenBTRMgrDevConT, 1, 1, 1);
+                        if (lenStartupRet != eBTRMgrSuccess) {
+                            BTRMGR_ConnectionFailureReason_t lenFailureReason =
+                                btrMgr_WaitForConnectionFailureReason(lDeviceHandle, enBTRCoreSpeakers);
                             BTRMGRLOG_ERROR ("btrMgr_StartAudioStreamingOut - Failure\n");
                             lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
+                            btrMgr_PostDeviceOperationFailure(aui8AdapterIdx,
+                                                              lDeviceHandle,
+                                                              BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO,
+                                                              lenFailureReason,
+                                                              "startup-audio");
+                        }
+                        else {
+                            btrMgr_CompleteDeviceOperation(lDeviceHandle, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO);
                         }
                         ghBTRMgrDevHdlLastConnected = lDeviceHandle;
                         gIsAudOutStartupInProgress = BTRMGR_STARTUP_AUD_COMPLETED;
@@ -6488,9 +6856,23 @@ BTRMGR_StartAudioStreamingOut (
     }
 
 
+    if (!btrMgr_BeginDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_AUDIO_START)) {
+        BTRMGRLOG_INFO("Rejecting overlapping audio-start operation device=%llu\n", ahBTRMgrDevHdl);
+        return BTRMGR_RESULT_GENERIC_FAILURE;
+    }
+
     if (btrMgr_StartAudioStreamingOut(aui8AdapterIdx, ahBTRMgrDevHdl, streamOutPref, 0, 0, 0) != eBTRMgrSuccess) {
+        BTRMGR_ConnectionFailureReason_t lenFailureReason = btrMgr_WaitForConnectionFailureReason(ahBTRMgrDevHdl, enBTRCoreSpeakers);
         BTRMGRLOG_ERROR ("Failure\n");
         lenBtrMgrResult = BTRMGR_RESULT_GENERIC_FAILURE;
+        btrMgr_PostDeviceOperationFailure(aui8AdapterIdx,
+                                          ahBTRMgrDevHdl,
+                                          BTRMGR_DEVICE_OPERATION_AUDIO_START,
+                                          lenFailureReason,
+                                          "public-audio-start");
+    }
+    else {
+        btrMgr_CompleteDeviceOperation(ahBTRMgrDevHdl, BTRMGR_DEVICE_OPERATION_AUDIO_START);
     }
 
     return lenBtrMgrResult;
@@ -9649,6 +10031,60 @@ void btrMgr_IncomingConnectionAuthentication(stBTRCoreDevStatusCBInfo* p_StatusC
 }
 
 STATIC enBTRCoreRet
+btrMgr_ConnectionFailureCb (
+    stBTRCoreConnectionFailureCBInfo* apstConnectionFailureCbInfo,
+    void*                             apvUserData
+) {
+    BTRMGR_EventMessage_t lstEventMessage;
+    BTRMGR_ConnectionFailureReason_t lenConnectionFailureReason;
+    BTRMGR_DeviceType_t lenBtrMgrDevType;
+    BTRMGR_DeviceOperationKind_t lenOperationKind = BTRMGR_DEVICE_OPERATION_NONE;
+    gboolean lbSendAutoFailure = FALSE;
+
+    (void)apvUserData;
+    if (!apstConnectionFailureCbInfo)
+        return enBTRCoreInvalidArg;
+
+    lenConnectionFailureReason = btrMgr_MapConnectionFailureReason(
+        apstConnectionFailureCbInfo->eDeviceConnectError);
+    if (lenConnectionFailureReason == BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN)
+        return enBTRCoreSuccess;
+
+    lbSendAutoFailure = btrMgr_RecordDeviceOperationFailure(apstConnectionFailureCbInfo->deviceId,
+                                                            lenConnectionFailureReason,
+                                                            &lenOperationKind);
+    if (!lbSendAutoFailure) {
+        BTRMGRLOG_INFO("Recorded, deduplicated, or ignored connection failure device=%llu kind=%d reason=%d\n",
+                       apstConnectionFailureCbInfo->deviceId, lenOperationKind,
+                   lenConnectionFailureReason);
+        return enBTRCoreSuccess;
+    }
+
+    MEMSET_S(&lstEventMessage, sizeof(lstEventMessage), 0, sizeof(lstEventMessage));
+    lenBtrMgrDevType = btrMgr_MapDeviceTypeFromCore(apstConnectionFailureCbInfo->eDeviceClass);
+    lstEventMessage.m_adapterIndex = 0;
+    lstEventMessage.m_connectionFailureReason = lenConnectionFailureReason;
+    lstEventMessage.m_eventType = BTRMGR_EVENT_DEVICE_CONNECTION_FAILED;
+    lstEventMessage.m_pairedDevice.m_deviceHandle = apstConnectionFailureCbInfo->deviceId;
+    lstEventMessage.m_pairedDevice.m_deviceType = lenBtrMgrDevType;
+    lstEventMessage.m_pairedDevice.m_isConnected = apstConnectionFailureCbInfo->isConnected;
+    lstEventMessage.m_pairedDevice.m_ui32DevClassBtSpec = apstConnectionFailureCbInfo->ui32DevClassBtSpec;
+    lstEventMessage.m_pairedDevice.m_ui16DevAppearanceBleSpec = apstConnectionFailureCbInfo->ui16DevAppearanceBleSpec;
+    strncpy(lstEventMessage.m_pairedDevice.m_name, apstConnectionFailureCbInfo->deviceName, BTRMGR_NAME_LEN_MAX - 1);
+    strncpy(lstEventMessage.m_pairedDevice.m_deviceAddress, apstConnectionFailureCbInfo->deviceAddress, BTRMGR_NAME_LEN_MAX - 1);
+
+    BTRMGRLOG_INFO("Posting deduplicated auto-connect failure device=%llu paired=%u connected=%u reason=%d\n",
+                   apstConnectionFailureCbInfo->deviceId,
+                   apstConnectionFailureCbInfo->isPaired,
+                   apstConnectionFailureCbInfo->isConnected,
+                   lenConnectionFailureReason);
+    if (gfpcBBTRMgrEventOut)
+        gfpcBBTRMgrEventOut(lstEventMessage);
+
+    return enBTRCoreSuccess;
+}
+
+STATIC enBTRCoreRet
 btrMgr_DeviceStatusCb (
     stBTRCoreDevStatusCBInfo*   p_StatusCB,
     void*                       apvUserData
@@ -9714,6 +10150,7 @@ btrMgr_DeviceStatusCb (
         }
         switch (p_StatusCB->eDeviceCurrState) {
         case enBTRCoreDevStPaired:
+            btrMgr_CompleteDeviceOperation(p_StatusCB->deviceId, BTRMGR_DEVICE_OPERATION_PAIR);
             /* Post this event only for HID Devices and Audio-In Devices */
             if ((p_StatusCB->eDeviceType == enBTRCoreHID) ||
                 (p_StatusCB->eDeviceType == enBTRCoreMobileAudioIn) ||
@@ -9789,6 +10226,7 @@ btrMgr_DeviceStatusCb (
 #endif
             break;
         case enBTRCoreDevStConnected:               /*  notify user device back   */
+            btrMgr_CompleteDeviceOperation(p_StatusCB->deviceId, BTRMGR_DEVICE_OPERATION_AUTO_CONNECT);
             if (enBTRCoreDevStLost == p_StatusCB->eDevicePrevState || enBTRCoreDevStPaired == p_StatusCB->eDevicePrevState) {
 #ifndef LE_MODE
                 if (gIsAudOutStartupInProgress != BTRMGR_STARTUP_AUD_INPROGRESS) {
