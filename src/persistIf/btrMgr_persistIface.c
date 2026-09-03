@@ -173,10 +173,10 @@ writeToPersistentFile (
         free(fileContent);
         return;
     }
-
-    free(fileContent);
     BTRMGRLOG_TRACE("Writing data to file - %s, Content - %s\n", fileName, fileContent);
     BTRMGRLOG_TRACE("Atomic file write Success\n");
+
+    free(fileContent);
 }
 
 /*  Local Op Threads */
