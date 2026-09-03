@@ -133,11 +133,7 @@ writeToPersistentFile (
 
     BTRMGRLOG_TRACE("Writing data to file %s\n", fileName);
 
-    int tmpLen = snprintf(tmpFileName, sizeof(tmpFileName), "%s.tmp", fileName);
-    if (tmpLen < 0 || (size_t)tmpLen >= sizeof(tmpFileName)) {
-    BTRMGRLOG_ERROR("Temp filename truncated for %s\n", fileName);
-    return;
-    }
+    snprintf(tmpFileName, sizeof(tmpFileName), "%s.tmp", fileName);
 
     fileContent = cJSON_Print(profileData);
     if (!fileContent) {
