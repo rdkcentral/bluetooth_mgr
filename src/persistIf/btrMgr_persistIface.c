@@ -30,6 +30,9 @@
 /* System Headers */
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 /* Ext lib Headers */
@@ -123,20 +126,71 @@ writeToPersistentFile (
     const char*   fileName,
     cJSON*  profileData
 ) {
-    FILE *fp = NULL;
-    BTRMGRLOG_TRACE("Writing data to file %s\n" ,fileName);
+    FILE *fp       = NULL;
+    char *fileContent = NULL;
+    char  tmpFileName[256] = {0};
+    int   fd       = -1;
 
-    fp = fopen(fileName, "w");
+    BTRMGRLOG_TRACE("Writing data to file %s\n", fileName);
+
+    snprintf(tmpFileName, sizeof(tmpFileName), "%s.tmp", fileName);
+
+    fileContent = cJSON_Print(profileData);
+    if (!fileContent) {
+        BTRMGRLOG_ERROR("cJSON_Print failed for %s\n", fileName);
+        return;
+    }
+
+    /* Explicit 0600 - fopen() would inherit umask and could create a world-writable file */
+    fd = open(tmpFileName, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        BTRMGRLOG_ERROR("Could not open temp file to write - %s\n", tmpFileName);
+        free(fileContent);
+        return;
+    }
+
+    fp = fdopen(fd, "w");
     if (fp == NULL) {
-        BTRMGRLOG_ERROR ("Could not open file to write, -  %s\n" ,fileName);
+        BTRMGRLOG_ERROR("fdopen failed for %s\n", tmpFileName);
+        close(fd);
+        unlink(tmpFileName);
+        free(fileContent);
+        return;
     }
-    else {
-        char* fileContent = cJSON_Print(profileData);
-        fprintf(fp, "%s", fileContent);
+    
+    if (fputs(fileContent, fp) == EOF) {
+        BTRMGRLOG_ERROR("Failed to write to temp file - %s\n", tmpFileName);
         fclose(fp);
-        BTRMGRLOG_TRACE ("Writing data to file - %s, Content - %s\n" ,fileName,fileContent);
-        BTRMGRLOG_TRACE ("File write Success\n");
+        free(fileContent);
+        unlink(tmpFileName);
+        return;
     }
+    if (fflush(fp) != 0) {
+        BTRMGRLOG_ERROR("fflush failed for %s\n", tmpFileName);
+        fclose(fp);
+        free(fileContent);
+        unlink(tmpFileName);
+        return;
+    }
+    if (fsync(fileno(fp)) != 0) {
+        BTRMGRLOG_ERROR("fsync failed for %s\n", tmpFileName);
+        fclose(fp);
+        free(fileContent);
+        unlink(tmpFileName);
+        return;
+    }
+    fclose(fp);
+
+    if (rename(tmpFileName, fileName) != 0) {
+        BTRMGRLOG_ERROR("rename failed: %s -> %s\n", tmpFileName, fileName);
+        unlink(tmpFileName);
+        free(fileContent);
+        return;
+    }
+    BTRMGRLOG_TRACE("Writing data to file - %s, Content - %s\n", fileName, fileContent);
+    BTRMGRLOG_TRACE("Atomic file write Success\n");
+
+    free(fileContent);
 }
 
 /*  Local Op Threads */
