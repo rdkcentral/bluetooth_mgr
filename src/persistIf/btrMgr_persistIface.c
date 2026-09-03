@@ -31,6 +31,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 /* Ext lib Headers */
@@ -127,6 +129,7 @@ writeToPersistentFile (
     FILE *fp       = NULL;
     char *fileContent = NULL;
     char  tmpFileName[256] = {0};
+    int   fd       = -1;
 
     BTRMGRLOG_TRACE("Writing data to file %s\n", fileName);
 
@@ -138,12 +141,23 @@ writeToPersistentFile (
         return;
     }
 
-    fp = fopen(tmpFileName, "w");
-    if (fp == NULL) {
+    /* Explicit 0600 - fopen() would inherit umask and could create a world-writable file */
+    fd = open(tmpFileName, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
         BTRMGRLOG_ERROR("Could not open temp file to write - %s\n", tmpFileName);
         free(fileContent);
         return;
     }
+
+    fp = fdopen(fd, "w");
+    if (fp == NULL) {
+        BTRMGRLOG_ERROR("fdopen failed for %s\n", tmpFileName);
+        close(fd);
+        unlink(tmpFileName);
+        free(fileContent);
+        return;
+    }
+    
     if (fputs(fileContent, fp) == EOF) {
         BTRMGRLOG_ERROR("Failed to write to temp file - %s\n", tmpFileName);
         fclose(fp);
