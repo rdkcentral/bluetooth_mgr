@@ -49,6 +49,15 @@ typedef struct _BTRMGR_DiscoveryHandle_t{
     BTRMGR_DiscoveryFilterHandle_t m_disFilter;
 } BTRMGR_DiscoveryHandle_t;
 
+typedef enum _BTRMGR_DeviceOperationKind_t {
+    BTRMGR_DEVICE_OPERATION_NONE,
+    BTRMGR_DEVICE_OPERATION_PAIR,
+    BTRMGR_DEVICE_OPERATION_CONNECT,
+    BTRMGR_DEVICE_OPERATION_AUDIO_START,
+    BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO,
+    BTRMGR_DEVICE_OPERATION_AUTO_CONNECT
+} BTRMGR_DeviceOperationKind_t;
+
 // Move to private header ?
 typedef struct _stBTRMgrStreamingInfo{
     tBTRMgrAcHdl hBTRMgrAcHdl;
@@ -105,6 +114,12 @@ extern eBTRMgrRet btrMgr_ACStatusCb(stBTRMgrMediaStatus *apstBtrMgrAcStatus, voi
 extern eBTRMgrRet btrMgr_SIStatusCb(stBTRMgrMediaStatus *apstBtrMgrSiStatus, void *apvUserData);
 extern eBTRMgrRet btrMgr_StartAudioStreamingOut(unsigned char aui8AdapterIdx, BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationType_t streamOutPref, unsigned int aui32ConnectRetryIdx, unsigned int aui32ConfirmIdx, unsigned int aui32SleepIdx);
 extern eBTRMgrRet btrMgr_SOStatusCb(stBTRMgrMediaStatus *apstBtrMgrSoStatus, void *apvUserData);
+extern void btrMgr_ResetDeviceOperationTracking(gboolean abReady);
+extern gboolean btrMgr_BeginDeviceOperation(BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind);
+extern gboolean btrMgr_RecordDeviceOperationFailure(BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_ConnectionFailureReason_t aenFailureReason, BTRMGR_DeviceOperationKind_t* apenOperationKind);
+extern gboolean btrMgr_ClaimDeviceOperationFailureEvent(BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind, BTRMGR_ConnectionFailureReason_t* apenFailureReason);
+extern gboolean btrMgr_PostDeviceOperationFailure(unsigned char aui8AdapterIdx, BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind, BTRMGR_ConnectionFailureReason_t aenFailureReason, const char* apcOperationName);
+extern void btrMgr_CompleteDeviceOperation(BTRMgrDeviceHandle ahBTRMgrDevHdl, BTRMGR_DeviceOperationKind_t aenOperationKind);
 
 
 void setUp(void)
@@ -127,6 +142,110 @@ void setUp(void)
 }
 void tearDown(void) {
     // Clean up any necessary variables or state after each test
+}
+
+void test_btrMgr_DeviceOperation_DeduplicatesExplicitConnectionFailure(void)
+{
+    BTRMGR_DeviceOperationKind_t operationKind = BTRMGR_DEVICE_OPERATION_NONE;
+    BTRMGR_ConnectionFailureReason_t failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+    btrMgr_BeginDeviceOperation(101, BTRMGR_DEVICE_OPERATION_CONNECT);
+
+    TEST_ASSERT_FALSE(btrMgr_RecordDeviceOperationFailure(101, BTRMGR_CONNECTION_FAILURE_REASON_REFUSED, &operationKind));
+    TEST_ASSERT_EQUAL(BTRMGR_DEVICE_OPERATION_CONNECT, operationKind);
+    TEST_ASSERT_TRUE(btrMgr_ClaimDeviceOperationFailureEvent(101, BTRMGR_DEVICE_OPERATION_CONNECT, &failureReason));
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_REFUSED, failureReason);
+    TEST_ASSERT_FALSE(btrMgr_ClaimDeviceOperationFailureEvent(101, BTRMGR_DEVICE_OPERATION_CONNECT, &failureReason));
+}
+
+void test_btrMgr_DeviceOperation_UpdatesUnknownWithLateReason(void)
+{
+    BTRMGR_DeviceOperationKind_t operationKind = BTRMGR_DEVICE_OPERATION_NONE;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+    btrMgr_BeginDeviceOperation(111, BTRMGR_DEVICE_OPERATION_CONNECT);
+
+    TEST_ASSERT_TRUE(btrMgr_PostDeviceOperationFailure(
+        0, 111, BTRMGR_DEVICE_OPERATION_CONNECT,
+        BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN, "timeout"));
+    TEST_ASSERT_TRUE(btrMgr_RecordDeviceOperationFailure(
+        111, BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT, &operationKind));
+    TEST_ASSERT_EQUAL(BTRMGR_DEVICE_OPERATION_CONNECT, operationKind);
+    TEST_ASSERT_FALSE(btrMgr_RecordDeviceOperationFailure(
+        111, BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN, &operationKind));
+}
+
+void test_btrMgr_DeviceOperation_RejectsOverlapForSameDevice(void)
+{
+    BTRMGR_DeviceOperationKind_t operationKind = BTRMGR_DEVICE_OPERATION_NONE;
+    BTRMGR_ConnectionFailureReason_t failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+    TEST_ASSERT_TRUE(btrMgr_BeginDeviceOperation(151, BTRMGR_DEVICE_OPERATION_CONNECT));
+    TEST_ASSERT_FALSE(btrMgr_BeginDeviceOperation(151, BTRMGR_DEVICE_OPERATION_PAIR));
+    btrMgr_RecordDeviceOperationFailure(151, BTRMGR_CONNECTION_FAILURE_REASON_REFUSED, &operationKind);
+
+    TEST_ASSERT_EQUAL(BTRMGR_DEVICE_OPERATION_CONNECT, operationKind);
+    TEST_ASSERT_TRUE(btrMgr_ClaimDeviceOperationFailureEvent(151, BTRMGR_DEVICE_OPERATION_CONNECT, &failureReason));
+}
+
+void test_btrMgr_DeviceOperation_TracksFailuresPerDevice(void)
+{
+    BTRMGR_ConnectionFailureReason_t firstReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+    BTRMGR_ConnectionFailureReason_t secondReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+    btrMgr_BeginDeviceOperation(201, BTRMGR_DEVICE_OPERATION_CONNECT);
+    btrMgr_BeginDeviceOperation(202, BTRMGR_DEVICE_OPERATION_CONNECT);
+    btrMgr_RecordDeviceOperationFailure(201, BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT, NULL);
+    btrMgr_RecordDeviceOperationFailure(202, BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN, NULL);
+
+    TEST_ASSERT_TRUE(btrMgr_ClaimDeviceOperationFailureEvent(201, BTRMGR_DEVICE_OPERATION_CONNECT, &firstReason));
+    TEST_ASSERT_TRUE(btrMgr_ClaimDeviceOperationFailureEvent(202, BTRMGR_DEVICE_OPERATION_CONNECT, &secondReason));
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT, firstReason);
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN, secondReason);
+}
+
+void test_btrMgr_DeviceOperation_UsesLatestFailureAcrossRetries(void)
+{
+    BTRMGR_ConnectionFailureReason_t failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+    btrMgr_BeginDeviceOperation(301, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO);
+    btrMgr_RecordDeviceOperationFailure(301, BTRMGR_CONNECTION_FAILURE_REASON_REFUSED, NULL);
+    btrMgr_RecordDeviceOperationFailure(301, BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT, NULL);
+
+    TEST_ASSERT_TRUE(btrMgr_ClaimDeviceOperationFailureEvent(301, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO, &failureReason));
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT, failureReason);
+    TEST_ASSERT_FALSE(btrMgr_ClaimDeviceOperationFailureEvent(301, BTRMGR_DEVICE_OPERATION_STARTUP_AUDIO, &failureReason));
+}
+
+void test_btrMgr_DeviceOperation_DeduplicatesPairingFailure(void)
+{
+    BTRMGR_ConnectionFailureReason_t failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+    btrMgr_BeginDeviceOperation(401, BTRMGR_DEVICE_OPERATION_PAIR);
+    btrMgr_RecordDeviceOperationFailure(401, BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED, NULL);
+
+    TEST_ASSERT_TRUE(btrMgr_ClaimDeviceOperationFailureEvent(401, BTRMGR_DEVICE_OPERATION_PAIR, &failureReason));
+    TEST_ASSERT_EQUAL(BTRMGR_CONNECTION_FAILURE_REASON_AUTH_FAILED, failureReason);
+    TEST_ASSERT_FALSE(btrMgr_ClaimDeviceOperationFailureEvent(401, BTRMGR_DEVICE_OPERATION_PAIR, &failureReason));
+}
+
+void test_btrMgr_DeviceOperation_DeduplicatesAutoConnectUntilSuccess(void)
+{
+    BTRMGR_DeviceOperationKind_t operationKind = BTRMGR_DEVICE_OPERATION_NONE;
+
+    btrMgr_ResetDeviceOperationTracking(TRUE);
+
+    TEST_ASSERT_TRUE(btrMgr_RecordDeviceOperationFailure(501, BTRMGR_CONNECTION_FAILURE_REASON_REFUSED, &operationKind));
+    TEST_ASSERT_EQUAL(BTRMGR_DEVICE_OPERATION_AUTO_CONNECT, operationKind);
+    TEST_ASSERT_FALSE(btrMgr_RecordDeviceOperationFailure(501, BTRMGR_CONNECTION_FAILURE_REASON_TIMED_OUT, &operationKind));
+
+    btrMgr_CompleteDeviceOperation(501, BTRMGR_DEVICE_OPERATION_NONE);
+    TEST_ASSERT_TRUE(btrMgr_RecordDeviceOperationFailure(501, BTRMGR_CONNECTION_FAILURE_REASON_HOST_DOWN, &operationKind));
 }
 
 enBTRCoreDeviceType     lenBTRCoreDevTy;

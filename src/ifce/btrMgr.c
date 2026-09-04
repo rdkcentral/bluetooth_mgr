@@ -191,6 +191,8 @@ typedef struct _BTRMGR_DeviceOperationState_t {
     BTRMGR_ConnectionFailureReason_t     failureReason;
     gboolean                             active;
     gboolean                             failureEventSent;
+    gboolean                             unknownFailureEventSent;
+    gboolean                             finalFailureEventSent;
 } BTRMGR_DeviceOperationState_t;
 
 //TODO: Move to a local handle. Mutex protect all
@@ -2036,6 +2038,8 @@ btrMgr_BeginDeviceOperation (
         lpstState->failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
         lpstState->active = TRUE;
         lpstState->failureEventSent = FALSE;
+        lpstState->unknownFailureEventSent = FALSE;
+        lpstState->finalFailureEventSent = FALSE;
         lbStarted = TRUE;
     }
     else if (lpstState) {
@@ -2071,6 +2075,8 @@ btrMgr_BeginDeviceOperationIfIdle (
         lpstState->failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
         lpstState->active = TRUE;
         lpstState->failureEventSent = FALSE;
+        lpstState->unknownFailureEventSent = FALSE;
+        lpstState->finalFailureEventSent = FALSE;
         lbStarted = TRUE;
     }
     g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
@@ -2102,6 +2108,17 @@ btrMgr_RecordDeviceOperationFailure (
                 lpstState->failureReason = aenFailureReason;
                 lpstState->active = FALSE;
                 lpstState->failureEventSent = TRUE;
+                lpstState->unknownFailureEventSent =
+                    (aenFailureReason == BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN);
+                lpstState->finalFailureEventSent = !lpstState->unknownFailureEventSent;
+                lbSendAutoFailure = TRUE;
+            }
+            else if (lpstState->unknownFailureEventSent &&
+                     !lpstState->finalFailureEventSent &&
+                     aenFailureReason != BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN) {
+                lpstState->failureReason = aenFailureReason;
+                lpstState->unknownFailureEventSent = FALSE;
+                lpstState->finalFailureEventSent = TRUE;
                 lbSendAutoFailure = TRUE;
             }
             if (apenOperationKind) {
@@ -2131,6 +2148,10 @@ btrMgr_ClaimDeviceOperationFailureEvent (
         }
         lpstState->active = FALSE;
         lpstState->failureEventSent = TRUE;
+        lpstState->unknownFailureEventSent =
+            (!apenFailureReason ||
+             *apenFailureReason == BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN);
+        lpstState->finalFailureEventSent = !lpstState->unknownFailureEventSent;
         lbSendEvent = TRUE;
     }
     g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
@@ -2191,6 +2212,8 @@ btrMgr_CompleteDeviceOperation (
         lpstState->failureReason = BTRMGR_CONNECTION_FAILURE_REASON_UNKNOWN;
         lpstState->active = FALSE;
         lpstState->failureEventSent = FALSE;
+        lpstState->unknownFailureEventSent = FALSE;
+        lpstState->finalFailureEventSent = FALSE;
         lbCompleted = TRUE;
     }
     g_mutex_unlock(&gBtrMgrDeviceOperationMutex);
