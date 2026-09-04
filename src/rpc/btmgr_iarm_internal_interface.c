@@ -40,7 +40,7 @@
 #include <glib.h>
 
 /* Identify if BTRMGR_DeInit is in progress */
-extern gboolean isDeinitInProgress;
+extern gboolean volatile isDeinitInProgress;
 
 /* STATIC Function Prototypes */
 STATIC IARM_Result_t btrMgr_GetNumberOfAdapters (void* arg);
