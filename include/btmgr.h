@@ -45,8 +45,6 @@ extern "C"
 {
 #endif
 
-gboolean btrMgr_GetDeinitInProgress (void);
-
 /**
  * @addtogroup BTR_MGR_API
  * @{
@@ -1475,6 +1473,13 @@ BTRMGR_Result_t BTRMGR_SetLTEServiceState(unsigned char aui8AdapterIdx, unsigned
 
 // Outgoing callbacks Registration Interfaces
 BTRMGR_Result_t BTRMGR_RegisterEventCallback(BTRMGR_EventCallback afpcBBTRMgrEventOut);
+
+/**
+ * @brief  This API checks if BTRMGR_DeInit is in progress or not.
+ *
+ * @return TRUE if BTRMGR_DeInit is in progress. Else returns false.
+ */
+gboolean BTRMGR_GetDeinitInProgress (void);
 
 /** @} */
 

@@ -573,7 +573,7 @@ STATIC void btrMgr_SetCMMac(unsigned char *devMac, const char* mac)
 /* STATIC Function Definitions */
 
 gboolean
-btrMgr_GetDeinitInProgress (void)
+BTRMGR_GetDeinitInProgress (void)
 {
     gboolean result;
     g_mutex_lock(&gDeinitStateMutex);
@@ -4719,7 +4719,7 @@ BTRMGR_StartDeviceDiscovery_Internal (
 
             do {
                 usleep(5000);
-            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !btrMgr_GetDeinitInProgress());
+            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !BTRMGR_GetDeinitInProgress());
         }
 
         if (!gIsAdapterDiscovering) {
@@ -4799,7 +4799,7 @@ BTRMGR_StopDeviceDiscovery_Internal (
 
         {   /* Max 6 sec timeout - Polled at 50ms interval */
             unsigned int ui32sleepIdx = 120;
-            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !btrMgr_GetDeinitInProgress()) {
+            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !BTRMGR_GetDeinitInProgress()) {
                 usleep(50000);
             }
         }
@@ -4945,7 +4945,7 @@ BTRMGR_GetDiscoveredDevices_Internal (
     int i = 0;
     int j = 0;
 
-    if (btrMgr_GetDeinitInProgress()) {
+    if (BTRMGR_GetDeinitInProgress()) {
         BTRMGRLOG_ERROR ("Process shutdown in progress, So not able read the list of discovered devices ...\n");
         return BTRMGR_RESULT_GENERIC_FAILURE;
     }
@@ -10698,7 +10698,7 @@ btrMgr_ConnectionInAuthenticationCb (
             (BTRMGR_XBOX_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_XBOX_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_NINTENDO_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_NINTENDO_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_XBOX_ADAPTIVE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ADAPTIVE_PRODUCT_ID == ui32MProductId))) &&
-            !btrMgr_GetDeinitInProgress() &&
+            !BTRMGR_GetDeinitInProgress() &&
             !gbGamepadStandbyMode) {
 
             if (apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlPairingInProgress &&

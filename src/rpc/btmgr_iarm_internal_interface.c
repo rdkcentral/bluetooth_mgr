@@ -98,15 +98,15 @@ STATIC unsigned char gIsBTRMGR_Internal_Inited = 0;
 
 #define BTRMGR_IARM_CHECK_DEINIT_VOID() \
 do { \
-    if (btrMgr_GetDeinitInProgress()) { \
-       BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
+    if (BTRMGR_GetDeinitInProgress()) { \
+       BTRMGRLOG_WARN ("IARM call rejected - deinit in progress..\n"); \
        return; \
    } \
 } while (0)
 
 #define BTRMGR_IARM_CHECK_DEINIT() \
 do { \
-    if (btrMgr_GetDeinitInProgress()) { \
+    if (BTRMGR_GetDeinitInProgress()) { \
        BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
        return IARM_RESULT_INVALID_STATE; \
    } \
