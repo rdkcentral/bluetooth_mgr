@@ -582,8 +582,8 @@ BTRMGR_GetDeinitInProgress (void)
     return result;
 }
 
-STATIC void
-btrMgr_SetDeinitInProgress (gboolean value)
+void
+BTRMGR_SetDeinitInProgress (gboolean value)
 {
     g_mutex_lock(&gDeinitStateMutex);
     isDeinitInProgress = value;
@@ -3935,7 +3935,7 @@ BTRMGR_Init (
 
     char btmgr_name[] = "btmgr";
     telemetry_init(btmgr_name);
-    btrMgr_SetDeinitInProgress(FALSE);
+    BTRMGR_SetDeinitInProgress(FALSE);
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
     MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
@@ -4115,7 +4115,7 @@ BTRMGR_DeInit (
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
     gboolean isRemoteDev = FALSE;
 
-    btrMgr_SetDeinitInProgress(TRUE);
+    BTRMGR_SetDeinitInProgress(TRUE);
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();

@@ -1481,6 +1481,13 @@ BTRMGR_Result_t BTRMGR_RegisterEventCallback(BTRMGR_EventCallback afpcBBTRMgrEve
  */
 gboolean BTRMGR_GetDeinitInProgress (void);
 
+/**
+ * @brief  This API sets the isDeinitInProgress.
+ *
+ * @return TRUE if BTRMGR_DeInit is in progress. Else returns false.
+ */
+void BTRMGR_SetDeinitInProgress (void);
+
 /** @} */
 
 #ifdef __cplusplus
