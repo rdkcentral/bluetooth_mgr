@@ -396,6 +396,7 @@ static inline void btrMgr_ClearCheckFirmwareVersionHoldOffTimer(void);
 static inline void btrMgr_ClearLastPairedDeviceStatusHoldOffTimer (void);
 #endif
 
+/* Preethi comment-1 */
 //static eBTRMgrRet btrMgr_SetDiscoveryFilter (BTRMGR_DiscoveryHandle_t* ahdiscoveryHdl, BTRMGR_ScanFilter_t aeScanFilterType, void* aFilterValue);
 //static eBTRMgrRet btrMgr_ClearDiscoveryFilter (BTRMGR_DiscoveryHandle_t*   ahdiscoveryHdl);
 
