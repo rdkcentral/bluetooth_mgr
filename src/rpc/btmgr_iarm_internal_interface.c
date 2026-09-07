@@ -39,9 +39,6 @@
 
 #include <glib.h>
 
-/* Identify if BTRMGR_DeInit is in progress */
-extern gboolean volatile isDeinitInProgress;
-
 /* STATIC Function Prototypes */
 STATIC IARM_Result_t btrMgr_GetNumberOfAdapters (void* arg);
 STATIC IARM_Result_t btrMgr_SetAdapterName (void* arg);
@@ -101,7 +98,7 @@ STATIC unsigned char gIsBTRMGR_Internal_Inited = 0;
 
 #define BTRMGR_IARM_CHECK_DEINIT_VOID() \
 do { \
-    if (isDeinitInProgress) { \
+    if (btrMgr_GetDeinitInProgress()) { \
        BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
        return; \
    } \
@@ -109,7 +106,7 @@ do { \
 
 #define BTRMGR_IARM_CHECK_DEINIT() \
 do { \
-    if (isDeinitInProgress) { \
+    if (btrMgr_GetDeinitInProgress()) { \
        BTRMGRLOG_WARN ("IARM call rejected - deinit in progress\n"); \
        return IARM_RESULT_INVALID_STATE; \
    } \

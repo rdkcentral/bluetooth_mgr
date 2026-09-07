@@ -193,7 +193,8 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlConnInProgress = 0;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 #endif
-gboolean volatile                       isDeinitInProgress = FALSE;
+STATIC GMutex                           gDeinitStateMutex;
+STATIC gboolean                         isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrBgDiscoveryHdl;
@@ -570,6 +571,25 @@ STATIC void btrMgr_SetCMMac(unsigned char *devMac, const char* mac)
 }
 
 /* STATIC Function Definitions */
+
+gboolean
+btrMgr_GetDeinitInProgress (void)
+{
+    gboolean result;
+    g_mutex_lock(&gDeinitStateMutex);
+    result = isDeinitInProgress;
+    g_mutex_unlock(&gDeinitStateMutex);
+    return result;
+}
+
+STATIC void
+btrMgr_SetDeinitInProgress (gboolean value)
+{
+    g_mutex_lock(&gDeinitStateMutex);
+    isDeinitInProgress = value;
+    g_mutex_unlock(&gDeinitStateMutex);
+}
+
 STATIC inline unsigned char
 btrMgr_GetAdapterCnt (
     void
@@ -3915,7 +3935,7 @@ BTRMGR_Init (
 
     char btmgr_name[] = "btmgr";
     telemetry_init(btmgr_name);
-    isDeinitInProgress = FALSE;
+    btrMgr_SetDeinitInProgress(FALSE);
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
     MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
@@ -4095,7 +4115,7 @@ BTRMGR_DeInit (
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
     gboolean isRemoteDev = FALSE;
 
-    isDeinitInProgress = TRUE;
+    btrMgr_SetDeinitInProgress(TRUE);
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
@@ -4699,7 +4719,7 @@ BTRMGR_StartDeviceDiscovery_Internal (
 
             do {
                 usleep(5000);
-            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !isDeinitInProgress);
+            } while ((!gIsAdapterDiscovering) && (--ui32sleepIdx) && !btrMgr_GetDeinitInProgress());
         }
 
         if (!gIsAdapterDiscovering) {
@@ -4779,7 +4799,7 @@ BTRMGR_StopDeviceDiscovery_Internal (
 
         {   /* Max 6 sec timeout - Polled at 50ms interval */
             unsigned int ui32sleepIdx = 120;
-            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !isDeinitInProgress) {
+            while ((gIsAdapterDiscovering) && (ui32sleepIdx--) && !btrMgr_GetDeinitInProgress()) {
                 usleep(50000);
             }
         }
@@ -4925,7 +4945,7 @@ BTRMGR_GetDiscoveredDevices_Internal (
     int i = 0;
     int j = 0;
 
-    if (isDeinitInProgress) {
+    if (btrMgr_GetDeinitInProgress()) {
         BTRMGRLOG_ERROR ("Process shutdown in progress, So not able read the list of discovered devices ...\n");
         return BTRMGR_RESULT_GENERIC_FAILURE;
     }
@@ -10678,7 +10698,7 @@ btrMgr_ConnectionInAuthenticationCb (
             (BTRMGR_XBOX_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_XBOX_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_NINTENDO_GAMESIR_VENDOR_ID == MVendorId && BTRMGR_NINTENDO_GAMESIR_PRODUCT_ID == ui32MProductId) ||
             (BTRMGR_XBOX_ADAPTIVE_VENDOR_ID == MVendorId && BTRMGR_XBOX_ADAPTIVE_PRODUCT_ID == ui32MProductId))) &&
-            isDeinitInProgress != TRUE &&
+            !btrMgr_GetDeinitInProgress() &&
             !gbGamepadStandbyMode) {
 
             if (apstConnCbInfo->stKnownDevice.tDeviceId != ghBTRMgrDevHdlPairingInProgress &&

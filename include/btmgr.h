@@ -18,6 +18,9 @@
 */
 #ifndef __BTR_MGR_H__
 #define __BTR_MGR_H__
+
+#include <glib.h>
+
 /**
  * @file btmgr.h
  *
@@ -41,6 +44,8 @@
 extern "C"
 {
 #endif
+
+gboolean btrMgr_GetDeinitInProgress (void);
 
 /**
  * @addtogroup BTR_MGR_API
