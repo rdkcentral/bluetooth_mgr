@@ -1486,7 +1486,7 @@ gboolean BTRMGR_GetDeinitInProgress (void);
  *
  * @return TRUE if BTRMGR_DeInit is in progress. Else returns false.
  */
-void BTRMGR_SetDeinitInProgress (void);
+void BTRMGR_SetDeinitInProgress (gboolean value);
 
 /** @} */
 
