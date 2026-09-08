@@ -196,7 +196,7 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 /* static storage is zero-initialized by default,
  * which is a valid unlocked GMutex initial state.
  */
-STATIC GMutex                           gDeinitStateMutex;
+static GMutex                           gDeinitStateMutex;
 STATIC gboolean                         isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
