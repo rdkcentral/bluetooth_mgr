@@ -193,7 +193,10 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlConnInProgress = 0;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 #endif
-STATIC GMutex                           gDeinitStateMutex = G_MUTEX_INIT;
+/* static storage is zero-initialized by default,
+ * which is a valid unclocked GMutex initial state.
+ */
+STATIC GMutex                           gDeinitStateMutex;
 STATIC gboolean                         isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
