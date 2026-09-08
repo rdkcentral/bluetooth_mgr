@@ -37,8 +37,6 @@
 #define STATIC 
 #endif 
 
-#include <glib.h>
-
 /* STATIC Function Prototypes */
 STATIC IARM_Result_t btrMgr_GetNumberOfAdapters (void* arg);
 STATIC IARM_Result_t btrMgr_SetAdapterName (void* arg);
