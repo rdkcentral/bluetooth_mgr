@@ -193,7 +193,7 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlConnInProgress = 0;
 #ifdef RDKTV_PERSIST_VOLUME
 STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
 #endif
-STATIC GMutex                           gDeinitStateMutex;
+STATIC GMutex                           gDeinitStateMutex = G_MUTEX_INIT;
 STATIC gboolean                         isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
