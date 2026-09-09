@@ -19,8 +19,6 @@
 #ifndef __BTR_MGR_H__
 #define __BTR_MGR_H__
 
-#include <glib.h>
-
 /**
  * @file btmgr.h
  *
@@ -124,6 +122,14 @@ extern "C"
 
 typedef unsigned long long int BTRMgrDeviceHandle;
 typedef unsigned long long int BTRMgrMediaElementHandle;
+
+/**
+ * @brief Represents the status of the operation.
+ */
+typedef enum _BTRMGR_Bool_t {
+    FALSE = 0,
+    TRUE = 1
+} BTRMGR_Bool_t;
 
 /**
  * @brief Represents the status of the operation.
@@ -1479,14 +1485,14 @@ BTRMGR_Result_t BTRMGR_RegisterEventCallback(BTRMGR_EventCallback afpcBBTRMgrEve
  *
  * @return TRUE if BTRMGR_DeInit is in progress. Else returns false.
  */
-gboolean BTRMGR_GetDeinitInProgress (void);
+BTRMGR_Bool_t BTRMGR_GetDeinitInProgress (void);
 
 /**
  * @brief Sets the BTRMGR_DeInit-in-progress flag.
  *
  * @param value TRUE if BTRMGR_DeInit is in progress, otherwise FALSE.
  */
-void BTRMGR_SetDeinitInProgress (gboolean value);
+void BTRMGR_SetDeinitInProgress (BTRMGR_Bool_t value);
 
 /** @} */
 

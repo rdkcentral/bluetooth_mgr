@@ -197,7 +197,7 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
  * which is a valid unlocked GMutex initial state.
  */
 static GMutex                           gDeinitStateMutex;
-STATIC gboolean                         isDeinitInProgress = FALSE;
+STATIC BTRMGR_Bool_t                    isDeinitInProgress = FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrBgDiscoveryHdl;
@@ -575,7 +575,7 @@ STATIC void btrMgr_SetCMMac(unsigned char *devMac, const char* mac)
 
 /* STATIC Function Definitions */
 
-gboolean
+BTRMGR_Bool_t
 BTRMGR_GetDeinitInProgress (void)
 {
     gboolean result;
@@ -586,7 +586,7 @@ BTRMGR_GetDeinitInProgress (void)
 }
 
 void
-BTRMGR_SetDeinitInProgress (gboolean value)
+BTRMGR_SetDeinitInProgress (BTRMGR_Bool_t value)
 {
     g_mutex_lock(&gDeinitStateMutex);
     isDeinitInProgress = value;
