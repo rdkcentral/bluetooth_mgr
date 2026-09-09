@@ -197,7 +197,7 @@ STATIC BTRMgrDeviceHandle               ghBTRMgrDevHdlVolSetupInProgress = 0;
  * which is a valid unlocked GMutex initial state.
  */
 static GMutex                           gDeinitStateMutex;
-STATIC BTRMGR_Bool_t                    isDeinitInProgress = FALSE;
+STATIC BTRMGR_Bool_t                    isDeinitInProgress = BTRMGR_FALSE;
 
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrDiscoveryHdl;
 STATIC BTRMGR_DiscoveryHandle_t         ghBTRMgrBgDiscoveryHdl;

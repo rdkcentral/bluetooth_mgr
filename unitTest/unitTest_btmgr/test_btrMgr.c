@@ -122,7 +122,7 @@ void setUp(void)
     gstBTRMgrStreamingInfo.channels = 0;
     gstBTRMgrStreamingInfo.bitsPerSample = 0;
     gstBTRMgrStreamingInfo.i32BytesToEncode = 0;
-    BTRMGR_SetDeinitInProgress(FALSE);
+    BTRMGR_SetDeinitInProgress(BTRMGR_FALSE);
 }
 void tearDown(void) {
     // Clean up any necessary variables or state after each test
@@ -5293,7 +5293,7 @@ void test_BTRMGR_GetDiscoveredDevices_Internal_InitializationFailure(void)
 {
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     unsigned char adapterIndex = 0;
-    BTRMGR_SetDeinitInProgress(false);
+    BTRMGR_SetDeinitInProgress(BTRMGR_FALSE);
 
     // Mocking BTRCore not initialized scenario
     ghBTRCoreHdl = NULL; // Assume global handler is null or set through a mock function
@@ -5306,7 +5306,7 @@ void test_BTRMGR_GetDiscoveredDevices_Internal_InitializationFailure(void)
 void test_BTRMGR_GetDiscoveredDevices_Internal_InvalidInput(void)
 {
     unsigned char adapterIndex = 255; // Invalid adapter index
-    BTRMGR_SetDeinitInProgress(false);
+    BTRMGR_SetDeinitInProgress(BTRMGR_FALSE);
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     gListOfAdapters.number_of_adapters = 1;
     // Mock valid initialization
@@ -5336,7 +5336,7 @@ void test_BTRMGR_GetDiscoveredDevices_Internal_NoDevicesFound(void)
 void test_BTRMGR_GetDiscoveredDevices_Internal_DevicesFound(void)
 {
     unsigned char adapterIndex = 0;
-    BTRMGR_SetDeinitInProgress(false);
+    BTRMGR_SetDeinitInProgress(BTRMGR_FALSE);
     BTRMGR_DiscoveredDevicesList_t discoveredDevices;
     gListOfAdapters.number_of_adapters = 1;
     ghBTRCoreHdl = (void *)1;

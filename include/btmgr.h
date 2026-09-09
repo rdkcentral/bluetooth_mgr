@@ -127,8 +127,8 @@ typedef unsigned long long int BTRMgrMediaElementHandle;
  * @brief Represents the status of the operation.
  */
 typedef enum _BTRMGR_Bool_t {
-    FALSE = 0,
-    TRUE = 1
+    BTRMGR_FALSE = 0,
+    BTRMGR_TRUE = 1
 } BTRMGR_Bool_t;
 
 /**
