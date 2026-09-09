@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -144,7 +145,8 @@ writeToPersistentFile (
     /* Explicit 0600 - fopen() would inherit umask and could create a world-writable file */
     fd = open(tmpFileName, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, S_IRUSR | S_IWUSR);
     if (fd < 0) {
-        BTRMGRLOG_ERROR("Could not open temp file to write - %s\n", tmpFileName);
+        BTRMGRLOG_ERROR("Could not open temp file - %s (errno=%d: %s)\n",
+                        tmpFileName, errno, strerror(errno));
         free(fileContent);
         return;
     }
