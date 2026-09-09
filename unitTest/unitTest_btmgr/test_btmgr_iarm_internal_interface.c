@@ -14,7 +14,7 @@ TEST_FILE("btmgr_iarm_internal_interface.c")
 void setUp(void)
 {
     /* BTRMGR_IARM_CHECK_DEINIT()/_VOID() call this on every handler; not under test here */
-    BTRMGR_GetDeinitInProgress_IgnoreAndReturn(FALSE);
+    BTRMGR_GetDeinitInProgress_IgnoreAndReturn(BTRMGR_FALSE);
 }
 
 void tearDown(void)
