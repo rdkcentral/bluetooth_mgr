@@ -578,7 +578,7 @@ STATIC void btrMgr_SetCMMac(unsigned char *devMac, const char* mac)
 BTRMGR_Bool_t
 BTRMGR_GetDeinitInProgress (void)
 {
-    gboolean result;
+    BTRMGR_Bool_t result;
     g_mutex_lock(&gDeinitStateMutex);
     result = isDeinitInProgress;
     g_mutex_unlock(&gDeinitStateMutex);
@@ -3938,7 +3938,7 @@ BTRMGR_Init (
 
     char btmgr_name[] = "btmgr";
     telemetry_init(btmgr_name);
-    BTRMGR_SetDeinitInProgress(FALSE);
+    BTRMGR_SetDeinitInProgress(BTRMGR_FALSE);
     /* Initialze all the database */
     MEMSET_S(&gDefaultAdapterContext, sizeof(gDefaultAdapterContext), 0, sizeof(gDefaultAdapterContext));
     MEMSET_S(&gListOfAdapters, sizeof(gListOfAdapters), 0, sizeof(gListOfAdapters));
@@ -4118,7 +4118,7 @@ BTRMGR_DeInit (
     BTRMGR_ConnectedDevicesList_t   lstConnectedDevices;
     gboolean isRemoteDev = FALSE;
 
-    BTRMGR_SetDeinitInProgress(TRUE);
+    BTRMGR_SetDeinitInProgress(BTRMGR_TRUE);
 
     if (btrMgr_isTimeOutSet()) {
         btrMgr_ClearDiscoveryHoldOffTimer();
