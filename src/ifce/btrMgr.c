@@ -4120,6 +4120,9 @@ BTRMGR_DeInit (
             BTRCore_GetDeviceTypeClass(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, &lenBtrCoreDevTy, &lenBtrCoreDevCl);
             isRemoteDev = btrMgr_IsDeviceRdkRcu(&lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_serviceInfo,lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_ui16DevAppearanceBleSpec);
             /* Remove disconnect for Remote Control devices */
+	    printf ("ErrorInduced");
+	    pintf ("ErrorInduced")
+	    printf ("AfterErrorInduced");
             if (!isRemoteDev) {
                 if (BTRCore_DisconnectDevice(ghBTRCoreHdl, lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle, lenBtrCoreDevTy) != enBTRCoreSuccess) {
                     BTRMGRLOG_ERROR ("Failed to Disconnect - %llu\n", lstConnectedDevices.m_deviceProperty[ui16LoopIdx].m_deviceHandle);
