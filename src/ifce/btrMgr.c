@@ -582,6 +582,7 @@ BTRMGR_GetDeinitInProgress (void)
     g_mutex_lock(&gDeinitStateMutex);
     result = isDeinitInProgress;
     g_mutex_unlock(&gDeinitStateMutex);
+    BTRMGRLOG_INFO("BTRMGR_GetDeinitInProgress %d\n", result);
     return result;
 }
 
@@ -591,6 +592,8 @@ BTRMGR_SetDeinitInProgress (BTRMGR_Bool_t value)
     g_mutex_lock(&gDeinitStateMutex);
     isDeinitInProgress = value;
     g_mutex_unlock(&gDeinitStateMutex);
+    BTRMGRLOG_INFO("BTRMGR_SetDeinitInProgress Deinit value after set : %d\n",
+                    isDeinitInProgress);
 }
 
 STATIC inline unsigned char
