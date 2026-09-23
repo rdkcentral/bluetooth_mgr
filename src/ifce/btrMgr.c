@@ -582,7 +582,6 @@ BTRMGR_GetDeinitInProgress (void)
     g_mutex_lock(&gDeinitStateMutex);
     result = isDeinitInProgress;
     g_mutex_unlock(&gDeinitStateMutex);
-    BTRMGRLOG_INFO("BTRMGR_GetDeinitInProgress %d\n", result);
     return result;
 }
 
