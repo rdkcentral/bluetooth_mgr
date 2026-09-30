@@ -2254,8 +2254,10 @@ STATIC IARM_Result_t
 btrMgr_DeInit (
     void*   arg
 ) {
-    if (gIsBTRMGR_Internal_Inited)
+    if (gIsBTRMGR_Internal_Inited) {
+        BTRMGR_IARM_CHECK_DEINIT();
         BTRMGR_DeInit();
+    }
 
     return IARM_RESULT_SUCCESS;
 }
