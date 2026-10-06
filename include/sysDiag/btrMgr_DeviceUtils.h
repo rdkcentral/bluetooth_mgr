@@ -5,7 +5,7 @@ typedef enum {
     eMD5Sum,
     eRdkSsaCli,
     eMfrUtil,
-    eWpeFrameworkSecurityUtility
+    eThunderSecurityUtility
 #ifdef GETRDMMANIFESTVERSION_IN_SCRIPT
     ,eGetInstalledRdmManifestVersion
 #endif

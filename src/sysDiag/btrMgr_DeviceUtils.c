@@ -11,7 +11,7 @@
 #include "btrMgr_DeviceUtils.h"
 #include "btrMgr_logger.h"
 
-#define WPEFRAMEWORKSECURITYUTILITY "/usr/bin/WPEFrameworkSecurityUtility"
+#define THUNDERSECURITYUTILITY "/usr/bin/ThunderSecurityUtility"
 #define MFRUTIL                         "/usr/bin/mfr_util %s" // --PDRIVersion"
 #define GETINSTALLEDRDMMANIFESTVERSIONSCRIPT  "/lib/rdk/cdlSupport.sh getInstalledRdmManifestVersion"
 #define RDKSSACLI               "/usr/bin/rdkssacli %s" // \"{STOR=GET,SRC=CREDREFERENCE,DST=STDOUT}\"";
@@ -56,7 +56,7 @@ int getJsonRpc(char *post_data, DownloadData* pJsonRpc )
 
     *token = 0;
     *jsondata = 0;
-    RunCommand( eWpeFrameworkSecurityUtility, NULL, jsondata, sizeof(jsondata) );
+    RunCommand( eThunderSecurityUtility, NULL, jsondata, sizeof(jsondata) );
 
     getJRPCTokenData(token, jsondata, sizeof(token));
     if (pJsonRpc->pvOut != NULL) {
@@ -126,8 +126,8 @@ size_t RunCommand( SYSCMD eSysCmd, const char *pArgs, char *pResult, size_t szRe
 				    }
                break;
 
-           case eWpeFrameworkSecurityUtility :
-               fp = v_secure_popen( "r", WPEFRAMEWORKSECURITYUTILITY );
+           case eThunderSecurityUtility :
+               fp = v_secure_popen( "r", THUNDERSECURITYUTILITY );
                break;
 
 
