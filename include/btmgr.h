@@ -18,6 +18,7 @@
 */
 #ifndef __BTR_MGR_H__
 #define __BTR_MGR_H__
+
 /**
  * @file btmgr.h
  *
@@ -121,6 +122,14 @@ extern "C"
 
 typedef unsigned long long int BTRMgrDeviceHandle;
 typedef unsigned long long int BTRMgrMediaElementHandle;
+
+/**
+ * @brief Represents the whether DeInit is in progress.
+ */
+typedef enum _BTRMGR_Bool_t {
+    BTRMGR_FALSE = 0,
+    BTRMGR_TRUE = 1
+} BTRMGR_Bool_t;
 
 /**
  * @brief Represents the status of the operation.
@@ -1470,6 +1479,20 @@ BTRMGR_Result_t BTRMGR_SetLTEServiceState(unsigned char aui8AdapterIdx, unsigned
 
 // Outgoing callbacks Registration Interfaces
 BTRMGR_Result_t BTRMGR_RegisterEventCallback(BTRMGR_EventCallback afpcBBTRMgrEventOut);
+
+/**
+ * @brief  This API checks if BTRMGR_DeInit is in progress or not.
+ *
+ * @return BTRMGR_TRUE if BTRMGR_DeInit is in progress. Else returns BTRMGR_FALSE.
+ */
+BTRMGR_Bool_t BTRMGR_GetDeinitInProgress (void);
+
+/**
+ * @brief Sets the BTRMGR_DeInit-in-progress flag.
+ *
+ * @param value BTRMGR_TRUE if BTRMGR_DeInit is in progress, otherwise BTRMGR_FALSE.
+ */
+void BTRMGR_SetDeinitInProgress (BTRMGR_Bool_t value);
 
 /** @} */
 
